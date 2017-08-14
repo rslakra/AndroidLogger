@@ -11,6 +11,8 @@ import org.apache.log4j.PatternLayout;
 import org.apache.log4j.RollingFileAppender;
 import org.apache.log4j.helpers.LogLog;
 
+import android.util.Log;
+
 /**
  * An Android log4j Logger.
  * <p>
@@ -84,6 +86,257 @@ public final class AndroidLogger {
 	 */
 	public static boolean isNullOrEmpty(CharSequence charSequence) {
 		return (isNull(charSequence) || charSequence.length() == 0);
+	}
+
+	/**
+	 * This ENUM handles the logTypes supported by <code>Logger</code>.
+	 * 
+	 * @author Rohtash Lakra (rohtash.lakra@devamatre.com)
+	 * @author Rohtash Singh Lakra (rohtash.singh@gmail.com)
+	 * @created 2017-08-11 06:55:24 PM
+	 * @version 1.0.0
+	 * @since 1.0.0
+	 */
+	public enum LogLevel {
+		SUPPRESS, ASSERT, ERROR, WARN, INFO, DEBUG, VERBOSE;
+	}
+
+	/* mLogLevel */
+	private static LogLevel mLogLevel = LogLevel.INFO;;
+
+	/**
+	 * the mLogLevel to be set.
+	 * 
+	 * @param logLevel
+	 */
+	public static void setLogLevel(LogLevel logLevel) {
+		mLogLevel = logLevel;
+	}
+
+	/**
+	 * Handy function to get a loggable stack trace from a Throwable.
+	 * 
+	 * @param mThrowable
+	 * @return
+	 */
+	public static String getStackTraceString(final Throwable mThrowable) {
+		return Log.getStackTraceString(mThrowable);
+	}
+
+	/**
+	 * Checks to see whether or not a log for the specified tag is loggable at
+	 * the specified level.
+	 *
+	 * The default level of any tag is set to INFO. This means that any level
+	 * above and including INFO will be logged. Before you make any calls to a
+	 * logging method you should check to see if your tag should be logged. You
+	 * can change the default level by calling
+	 * <code>setLogLevel(LogLevel logLevel)</code> method, where level is either
+	 * VERBOSE, DEBUG, INFO, WARN, ERROR, ASSERT, or SUPPRESS. SUPPRESS will
+	 * turn off all logging for your tag. You can also create a local.prop file
+	 * that with the following in it: 'log.tag.&lt;YOUR_LOG_TAG>=&lt;LEVEL>' and
+	 * place that in /data/local.prop.
+	 *
+	 * @param tag
+	 *            The tag to check.
+	 * @param level
+	 *            The level to check.
+	 * @return Whether or not that this is allowed to be logged.
+	 * @throws IllegalArgumentException
+	 *             is thrown if the tag.length() > 23.
+	 */
+	public static boolean isLoggable(LogLevel logLevel) {
+		return (logLevel != null && logLevel.ordinal() >= mLogLevel.ordinal());
+	}
+
+	/**
+	 * Send a VERBOSE log message.
+	 * 
+	 * @param logTag
+	 * @param logMessage
+	 * @return
+	 */
+	public static void v(final String logTag, final String logMessage) {
+		if (isLoggable(LogLevel.VERBOSE)) {
+			Log.v(logTag, logMessage);
+		}
+	}
+
+	/**
+	 * Send a VERBOSE log message.
+	 * 
+	 * @param logTag
+	 * @param logMessage
+	 * @param mThrowable
+	 * @return
+	 */
+	public static void v(final String logTag, final String logMessage, final Throwable mThrowable) {
+		if (isLoggable(LogLevel.VERBOSE)) {
+			Log.v(logTag, logMessage, mThrowable);
+		}
+	}
+
+	/**
+	 * Send a DEBUG log message.
+	 * 
+	 * @param logTag
+	 * @param logMessage
+	 * @return
+	 */
+	public static void d(final String logTag, final String logMessage) {
+		if (isLoggable(LogLevel.DEBUG)) {
+			Log.d(logTag, logMessage);
+		}
+	}
+
+	/**
+	 * Send a DEBUG log message.
+	 * 
+	 * @param logTag
+	 * @param logMessage
+	 * @param mThrowable
+	 * @return
+	 */
+	public static void d(final String logTag, final String logMessage, final Throwable mThrowable) {
+		if (isLoggable(LogLevel.DEBUG)) {
+			Log.d(logTag, logMessage, mThrowable);
+		}
+	}
+
+	/**
+	 * Send a INFO log message.
+	 * 
+	 * @param logTag
+	 * @param logMessage
+	 * @return
+	 */
+	public static void i(final String logTag, final String logMessage) {
+		if (isLoggable(LogLevel.INFO)) {
+			Log.i(logTag, logMessage);
+		}
+	}
+
+	/**
+	 * Send a INFO log message.
+	 * 
+	 * @param logTag
+	 * @param logMessage
+	 * @param mThrowable
+	 * @return
+	 */
+	public static void i(final String logTag, final String logMessage, final Throwable mThrowable) {
+		if (isLoggable(LogLevel.INFO)) {
+			Log.i(logTag, logMessage, mThrowable);
+		}
+	}
+
+	/**
+	 * Send a WARN log message.
+	 * 
+	 * @param logTag
+	 * @param logMessage
+	 * @return
+	 */
+	public static void w(final String logTag, final String logMessage) {
+		if (isLoggable(LogLevel.WARN)) {
+			Log.w(logTag, logMessage);
+		}
+	}
+
+	/**
+	 * Send a WARN log message.
+	 * 
+	 * @param logTag
+	 * @param logMessage
+	 * @param mThrowable
+	 * @return
+	 */
+	public static void w(final String logTag, final String logMessage, final Throwable mThrowable) {
+		if (isLoggable(LogLevel.WARN)) {
+			Log.w(logTag, logMessage, mThrowable);
+		}
+	}
+
+	/**
+	 * Send a ERROR log message.
+	 * 
+	 * @param logTag
+	 * @param logMessage
+	 * @return
+	 */
+	public static void e(final String logTag, final String logMessage) {
+		if (isLoggable(LogLevel.ERROR)) {
+			Log.e(logTag, logMessage);
+		}
+	}
+
+	/**
+	 * Send a ERROR log message.
+	 * 
+	 * @param logTag
+	 * @param logMessage
+	 * @param mThrowable
+	 * @return
+	 */
+	public static void e(final String logTag, final String logMessage, final Throwable mThrowable) {
+		if (isLoggable(LogLevel.ERROR)) {
+			Log.e(logTag, logMessage, mThrowable);
+		}
+	}
+
+	/**
+	 * What a Terrible Failure: Report a condition that should never happen. The
+	 * error will always be logged at level ASSERT with the call stack.
+	 * Depending on system configuration, a report may be added to the
+	 * {@link android.os.DropBoxManager} and/or the process may be terminated
+	 * immediately with an error dialog.
+	 * 
+	 * @param logTag
+	 * @param logMessage
+	 */
+	public static void wtf(final String logTag, final String logMessage) {
+		if (isLoggable(LogLevel.ASSERT)) {
+			Log.wtf(logTag, logMessage);
+		}
+	}
+
+	/**
+	 * What a Terrible Failure: Report an exception that should never happen.
+	 * Similar to {@link #wtf(String, String)}, with an exception to log.
+	 * 
+	 * @param logTag
+	 * @param mThrowable
+	 */
+	public static void wtf(String logTag, final Throwable mThrowable) {
+		if (isLoggable(LogLevel.ASSERT)) {
+			Log.wtf(logTag, mThrowable);
+		}
+	}
+
+	/**
+	 * What a Terrible Failure: Report an exception that should never happen.
+	 * Similar to {@link #wtf(String, Throwable)}, with a message as well.
+	 * 
+	 * @param logTag
+	 * @param logMessage
+	 * @param mThrowable
+	 */
+	public static void wtf(final String logTag, final String logMessage, final Throwable mThrowable) {
+		if (isLoggable(LogLevel.ASSERT)) {
+			Log.wtf(logTag, logMessage, mThrowable);
+		}
+	}
+
+	/**
+	 * Low-level logging call.
+	 * 
+	 * @param logPriority
+	 * @param logTag
+	 * @param logMessage
+	 * @return
+	 */
+	public static int println(int logPriority, final String logTag, final String logMessage) {
+		return Log.println(logPriority, logTag, logMessage);
 	}
 
 	/**
