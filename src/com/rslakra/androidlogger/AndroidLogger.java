@@ -11,7 +11,9 @@ import org.apache.log4j.PatternLayout;
 import org.apache.log4j.RollingFileAppender;
 import org.apache.log4j.helpers.LogLog;
 
+import android.net.Uri;
 import android.util.Log;
+import android.webkit.WebResourceRequest;
 
 /**
  * An Android log4j Logger.
@@ -31,6 +33,11 @@ public final class AndroidLogger {
 	/* LOG_FILE_NAME */
 	private final static String LOG_FILE_NAME = "dLog4jAndroid.log".intern();
 
+	/** EMPTY_STRING */
+	public static final String EMPTY_STRING = "".intern();
+	/** NULL_STRING */
+	public static final String NULL_STRING = "(NULL)".intern();
+
 	/* MAX_BACKUP_FILES - maximum 3 files */
 	private final static int MAX_BACKUP_FILES = 3;
 	/* MAX_FILE_SIZE - 5 MB */
@@ -46,17 +53,21 @@ public final class AndroidLogger {
 	public final static String ANDROID_LOG_PATTERN = "[%d{yyyy-MM-dd HH:mm:ss.S zzz}] %5p [%c{1}(%L)] - %m%n";
 
 	/* cachedLoggers. */
-	private static final Map<String, Logger> cachedLoggers = new ConcurrentHashMap<String, Logger>();
+	private static final Map<String, Logger> mCachedLoggers = new ConcurrentHashMap<String, Logger>();
 
 	/* log4jConfigurator */
 	// private final static AndroidLog4JConfigurator log4jConfigurator = new
 	// AndroidLog4JConfigurator(null);
-	private static AndroidLogger androidLogger;
+	private static AndroidLogger sAndroidLogger;
 
 	/* object properties. */
-	private final Logger rootLogger = Logger.getRootLogger();
-	private Level logLevel;
-	private String filePattern;
+	/* mLogType */
+	private static LogType mLogType = LogType.INFO;
+	private final Logger mRootLogger = Logger.getRootLogger();
+	/* mLogLevel */
+	private Level mLogLevel;
+	private PatternLayout mLogFilePattern;
+
 	private String logFileName;
 	private String mLogFilePath;
 	private int maxBackupSize;
@@ -97,20 +108,17 @@ public final class AndroidLogger {
 	 * @version 1.0.0
 	 * @since 1.0.0
 	 */
-	public enum LogLevel {
+	public enum LogType {
 		SUPPRESS, ASSERT, ERROR, WARN, INFO, DEBUG, VERBOSE;
 	}
 
-	/* mLogLevel */
-	private static LogLevel mLogLevel = LogLevel.INFO;;
-
 	/**
-	 * the mLogLevel to be set.
+	 * the mLogType to be set.
 	 * 
-	 * @param logLevel
+	 * @param logType
 	 */
-	public static void setLogLevel(LogLevel logLevel) {
-		mLogLevel = logLevel;
+	public static void setLogLevel(LogType logType) {
+		mLogType = logType;
 	}
 
 	/**
@@ -131,7 +139,7 @@ public final class AndroidLogger {
 	 * above and including INFO will be logged. Before you make any calls to a
 	 * logging method you should check to see if your tag should be logged. You
 	 * can change the default level by calling
-	 * <code>setLogLevel(LogLevel logLevel)</code> method, where level is either
+	 * <code>setLogLevel(LogLevel LogType)</code> method, where level is either
 	 * VERBOSE, DEBUG, INFO, WARN, ERROR, ASSERT, or SUPPRESS. SUPPRESS will
 	 * turn off all logging for your tag. You can also create a local.prop file
 	 * that with the following in it: 'log.tag.&lt;YOUR_LOG_TAG>=&lt;LEVEL>' and
@@ -145,21 +153,34 @@ public final class AndroidLogger {
 	 * @throws IllegalArgumentException
 	 *             is thrown if the tag.length() > 23.
 	 */
-	public static boolean isLoggable(LogLevel logLevel) {
-		return (logLevel != null && logLevel.ordinal() >= mLogLevel.ordinal());
+	public static boolean isLoggable(LogType logType) {
+		return (logType != null && logType.ordinal() >= mLogType.ordinal());
+	}
+
+	/**************************************************************************
+	 * Helpers methods.
+	 **************************************************************************/
+
+	/**
+	 * Returns the formatted string for the given objects.
+	 * 
+	 * @param format
+	 * @param objects
+	 * @return
+	 */
+	public static final String format(String format, Object... objects) {
+		return String.format(format, objects);
 	}
 
 	/**
-	 * Send a VERBOSE log message.
+	 * Returns the string representation of the specified object. If
+	 * <code>object</code> is null, return "(null)".
 	 * 
-	 * @param logTag
-	 * @param logMessage
+	 * @param object
 	 * @return
 	 */
-	public static void v(final String logTag, final String logMessage) {
-		if (isLoggable(LogLevel.VERBOSE)) {
-			Log.v(logTag, logMessage);
-		}
+	public static final String toString(final Object object) {
+		return (object == null ? NULL_STRING : object.toString());
 	}
 
 	/**
@@ -170,9 +191,53 @@ public final class AndroidLogger {
 	 * @param mThrowable
 	 * @return
 	 */
-	public static void v(final String logTag, final String logMessage, final Throwable mThrowable) {
-		if (isLoggable(LogLevel.VERBOSE)) {
-			Log.v(logTag, logMessage, mThrowable);
+	public static void v(final String logTag, final Object logMessage, final Throwable mThrowable) {
+		if (isLoggable(LogType.VERBOSE)) {
+			if (isNull(mThrowable)) {
+				Log.v(logTag, toString(logMessage));
+			} else {
+				Log.v(logTag, toString(logMessage), mThrowable);
+			}
+		}
+	}
+
+	/**
+	 * Send a VERBOSE log message.
+	 * 
+	 * @param logTag
+	 * @param logMessage
+	 * @return
+	 */
+	public static void v(final String logTag, final Object logMessage) {
+		v(logTag, logMessage, null);
+	}
+
+	/**
+	 * Send a VERBOSE log message.
+	 * 
+	 * @param logTag
+	 * @param logFormat
+	 * @param arguments
+	 */
+	public static void v(final String logTag, final String logFormat, final Object... logArguments) {
+		v(logTag, format(logFormat, logArguments));
+	}
+
+	/**
+	 * Send a DEBUG log message.
+	 * 
+	 * @param logTag
+	 * @param logMessage
+	 * @param mThrowable
+	 * @return
+	 */
+	public static void d(final String logTag, final Object logMessage, final Throwable mThrowable) {
+		if (isLoggable(LogType.DEBUG)) {
+			if (isNull(mThrowable)) {
+				Log.d(logTag, toString(logMessage));
+			} else {
+				Log.d(logTag, toString(logMessage), mThrowable);
+			}
 		}
 	}
 
@@ -183,37 +248,19 @@ public final class AndroidLogger {
 	 * @param logMessage
 	 * @return
 	 */
-	public static void d(final String logTag, final String logMessage) {
-		if (isLoggable(LogLevel.DEBUG)) {
-			Log.d(logTag, logMessage);
-		}
+	public static void d(final String logTag, final Object logMessage) {
+		d(logTag, logMessage, null);
 	}
 
 	/**
 	 * Send a DEBUG log message.
 	 * 
 	 * @param logTag
-	 * @param logMessage
-	 * @param mThrowable
-	 * @return
+	 * @param logFormat
+	 * @param arguments
 	 */
-	public static void d(final String logTag, final String logMessage, final Throwable mThrowable) {
-		if (isLoggable(LogLevel.DEBUG)) {
-			Log.d(logTag, logMessage, mThrowable);
-		}
-	}
-
-	/**
-	 * Send a INFO log message.
-	 * 
-	 * @param logTag
-	 * @param logMessage
-	 * @return
-	 */
-	public static void i(final String logTag, final String logMessage) {
-		if (isLoggable(LogLevel.INFO)) {
-			Log.i(logTag, logMessage);
-		}
+	public static void d(final String logTag, final String logFormat, final Object... logArguments) {
+		d(logTag, format(logFormat, logArguments));
 	}
 
 	/**
@@ -224,23 +271,36 @@ public final class AndroidLogger {
 	 * @param mThrowable
 	 * @return
 	 */
-	public static void i(final String logTag, final String logMessage, final Throwable mThrowable) {
-		if (isLoggable(LogLevel.INFO)) {
-			Log.i(logTag, logMessage, mThrowable);
+	public static void i(final String logTag, final Object logMessage, final Throwable mThrowable) {
+		if (isLoggable(LogType.INFO)) {
+			if (isNull(mThrowable)) {
+				Log.i(logTag, toString(logMessage));
+			} else {
+				Log.i(logTag, toString(logMessage), mThrowable);
+			}
 		}
 	}
 
 	/**
-	 * Send a WARN log message.
+	 * Send a INFO log message.
 	 * 
 	 * @param logTag
 	 * @param logMessage
 	 * @return
 	 */
-	public static void w(final String logTag, final String logMessage) {
-		if (isLoggable(LogLevel.WARN)) {
-			Log.w(logTag, logMessage);
-		}
+	public static void i(final String logTag, final Object logMessage) {
+		i(logTag, logMessage, null);
+	}
+
+	/**
+	 * Send a INFO log message.
+	 * 
+	 * @param logTag
+	 * @param logFormat
+	 * @param arguments
+	 */
+	public static void i(final String logTag, final String logFormat, final Object... logArguments) {
+		i(logTag, format(logFormat, logArguments));
 	}
 
 	/**
@@ -251,23 +311,36 @@ public final class AndroidLogger {
 	 * @param mThrowable
 	 * @return
 	 */
-	public static void w(final String logTag, final String logMessage, final Throwable mThrowable) {
-		if (isLoggable(LogLevel.WARN)) {
-			Log.w(logTag, logMessage, mThrowable);
+	public static void w(final String logTag, final Object logMessage, final Throwable mThrowable) {
+		if (isLoggable(LogType.WARN)) {
+			if (isNull(mThrowable)) {
+				Log.w(logTag, toString(logMessage));
+			} else {
+				Log.w(logTag, toString(logMessage), mThrowable);
+			}
 		}
 	}
 
 	/**
-	 * Send a ERROR log message.
+	 * Send a WARN log message.
 	 * 
 	 * @param logTag
 	 * @param logMessage
 	 * @return
 	 */
-	public static void e(final String logTag, final String logMessage) {
-		if (isLoggable(LogLevel.ERROR)) {
-			Log.e(logTag, logMessage);
-		}
+	public static void w(final String logTag, final Object logMessage) {
+		w(logTag, logMessage, null);
+	}
+
+	/**
+	 * Send a WARN log message.
+	 * 
+	 * @param logTag
+	 * @param logFormat
+	 * @param arguments
+	 */
+	public static void w(final String logTag, final String logFormat, final Object... logArguments) {
+		w(logTag, format(logFormat, logArguments));
 	}
 
 	/**
@@ -278,9 +351,53 @@ public final class AndroidLogger {
 	 * @param mThrowable
 	 * @return
 	 */
-	public static void e(final String logTag, final String logMessage, final Throwable mThrowable) {
-		if (isLoggable(LogLevel.ERROR)) {
-			Log.e(logTag, logMessage, mThrowable);
+	public static void e(final String logTag, final Object logMessage, final Throwable mThrowable) {
+		if (isLoggable(LogType.ERROR)) {
+			if (isNull(mThrowable)) {
+				Log.e(logTag, toString(logMessage));
+			} else {
+				Log.e(logTag, toString(logMessage), mThrowable);
+			}
+		}
+	}
+
+	/**
+	 * Send a ERROR log message.
+	 * 
+	 * @param logTag
+	 * @param logMessage
+	 * @return
+	 */
+	public static void e(final String logTag, final Object logMessage) {
+		e(logTag, logMessage, null);
+	}
+
+	/**
+	 * Send a ERROR log message.
+	 * 
+	 * @param logTag
+	 * @param logFormat
+	 * @param arguments
+	 */
+	public static void e(final String logTag, final String logFormat, final Object... logArguments) {
+		e(logTag, format(logFormat, logArguments));
+	}
+
+	/**
+	 * What a Terrible Failure: Report an exception that should never happen.
+	 * Similar to {@link #wtf(String, Throwable)}, with a message as well.
+	 * 
+	 * @param logTag
+	 * @param logMessage
+	 * @param mThrowable
+	 */
+	public static void wtf(final String logTag, final Object logMessage, final Throwable mThrowable) {
+		if (isLoggable(LogType.ASSERT)) {
+			if (isNull(mThrowable)) {
+				Log.wtf(logTag, toString(logMessage));
+			} else {
+				Log.wtf(logTag, toString(logMessage), mThrowable);
+			}
 		}
 	}
 
@@ -294,10 +411,8 @@ public final class AndroidLogger {
 	 * @param logTag
 	 * @param logMessage
 	 */
-	public static void wtf(final String logTag, final String logMessage) {
-		if (isLoggable(LogLevel.ASSERT)) {
-			Log.wtf(logTag, logMessage);
-		}
+	public static void wtf(final String logTag, final Object logMessage) {
+		wtf(logTag, logMessage, null);
 	}
 
 	/**
@@ -308,22 +423,8 @@ public final class AndroidLogger {
 	 * @param mThrowable
 	 */
 	public static void wtf(String logTag, final Throwable mThrowable) {
-		if (isLoggable(LogLevel.ASSERT)) {
+		if (isLoggable(LogType.ASSERT)) {
 			Log.wtf(logTag, mThrowable);
-		}
-	}
-
-	/**
-	 * What a Terrible Failure: Report an exception that should never happen.
-	 * Similar to {@link #wtf(String, Throwable)}, with a message as well.
-	 * 
-	 * @param logTag
-	 * @param logMessage
-	 * @param mThrowable
-	 */
-	public static void wtf(final String logTag, final String logMessage, final Throwable mThrowable) {
-		if (isLoggable(LogLevel.ASSERT)) {
-			Log.wtf(logTag, logMessage, mThrowable);
 		}
 	}
 
@@ -343,28 +444,28 @@ public final class AndroidLogger {
 	 * Configures the logger with the privided settings.
 	 * 
 	 * @param logFileName
-	 * @param logLevel
+	 * @param LogType
 	 * @param filePattern
 	 * @param maxBackupFiles
 	 * @param maxFileSize
 	 */
-	public static void log4jConfigure(String logFileName, Level logLevel, String filePattern, int maxBackupFiles,
+	public static void log4jConfigure(String logFileName, Level LogType, String filePattern, int maxBackupFiles,
 			long maxFileSize) {
-		if (isNull(logLevel)) {
-			logLevel = Level.WARN;
+		if (isNull(LogType)) {
+			LogType = Level.WARN;
 		}
 
 		/* create only one instance of this logger. */
-		if (isNull(androidLogger)) {
+		if (isNull(sAndroidLogger)) {
 			synchronized (AndroidLogger.class) {
-				if (isNull(androidLogger)) {
-					androidLogger = new AndroidLogger(logFileName, logLevel, filePattern, maxBackupFiles, maxFileSize);
+				if (isNull(sAndroidLogger)) {
+					sAndroidLogger = new AndroidLogger(logFileName, LogType, filePattern, maxBackupFiles, maxFileSize);
 				}
 			}
 		}
 
-		// configure
-		androidLogger.configure();
+		// configure this logger.
+		sAndroidLogger.configure();
 	}
 
 	/**
@@ -375,8 +476,8 @@ public final class AndroidLogger {
 	 * @param maxBackupFiles
 	 * @param maxFileSize
 	 */
-	public static void log4jConfigure(String logFileName, Level logLevel, String filePattern, int maxBackupFiles) {
-		log4jConfigure(logFileName, logLevel, filePattern, maxBackupFiles, MAX_FILE_SIZE);
+	public static void log4jConfigure(String logFileName, Level LogType, String filePattern, int maxBackupFiles) {
+		log4jConfigure(logFileName, LogType, filePattern, maxBackupFiles, MAX_FILE_SIZE);
 	}
 
 	/**
@@ -387,8 +488,8 @@ public final class AndroidLogger {
 	 * @param maxBackupFiles
 	 * @param maxFileSize
 	 */
-	public static void log4jConfigure(String logFileName, Level logLevel, String filePattern) {
-		log4jConfigure(logFileName, logLevel, filePattern, MAX_BACKUP_FILES);
+	public static void log4jConfigure(String logFileName, Level LogType, String filePattern) {
+		log4jConfigure(logFileName, LogType, filePattern, MAX_BACKUP_FILES);
 	}
 
 	/**
@@ -397,8 +498,8 @@ public final class AndroidLogger {
 	 * @param parentFolder
 	 * @param logFileName
 	 */
-	public static void log4jConfigure(String logFileName, Level logLevel) {
-		log4jConfigure(logFileName, logLevel, ANDROID_LOG_PATTERN, MAX_BACKUP_FILES, MAX_FILE_SIZE);
+	public static void log4jConfigure(String logFileName, Level LogType) {
+		log4jConfigure(logFileName, LogType, ANDROID_LOG_PATTERN, MAX_BACKUP_FILES, MAX_FILE_SIZE);
 	}
 
 	/**
@@ -432,13 +533,13 @@ public final class AndroidLogger {
 			throw new IllegalArgumentException("klass name should not be null.");
 		}
 
-		logger = cachedLoggers.get(klass.getName());
+		logger = mCachedLoggers.get(klass.getName());
 		if (isNull(logger)) {
-			synchronized (LogManager.class) {
+			synchronized (AndroidLogger.class) {
 				if (isNull(logger)) {
 					logger = Logger.getLogger(klass.getName());
 					/* cache this class logger to reuse */
-					cachedLoggers.put(klass.getName(), logger);
+					mCachedLoggers.put(klass.getName(), logger);
 				}
 			}
 		}
@@ -457,21 +558,59 @@ public final class AndroidLogger {
 	}
 
 	/**
+	 * Logs the URL details.
+	 * 
+	 * @param logTag
+	 * @param uri
+	 */
+	public static void logUri(final String logTag, final Uri uri) {
+		d(logTag, "urlString:" + uri.toString());
+		d(logTag, "Scheme:" + uri.getScheme());
+		d(logTag, "Host:" + uri.getHost());
+		d(logTag, "QueryParameterNames:" + uri.getQueryParameterNames());
+		d(logTag, "Query:" + uri.getQuery());
+	}
+
+	/**
+	 * Logs the URL details.
+	 * 
+	 * @param logTag
+	 * @param urlString
+	 */
+	public static void logUri(final String logTag, final String urlString) {
+		logUri(logTag, Uri.parse(urlString));
+	}
+
+	/**
+	 * Logs the <code>WebResourceRequest</code>.
+	 * 
+	 * @param logTag
+	 * @param webRequest
+	 */
+	public static void logWebRequest(final String logTag, final WebResourceRequest webRequest) {
+		d(logTag, "urlString:" + webRequest.getUrl().toString());
+		d(logTag, "Method:" + webRequest.getMethod());
+		d(logTag, "RequestHeaders:" + webRequest.getRequestHeaders());
+		d(logTag, "QueryParameterNames:" + webRequest.getUrl().getQueryParameterNames());
+		d(logTag, "Query:" + webRequest.getUrl().getQuery());
+	}
+
+	/**
 	 * 
 	 * @param logFileName
 	 * @param rootLevel
-	 * @param filePattern
+	 * @param logFilePattern
 	 * @param maxBackupSize
 	 * @param maxFileSize
 	 */
-	public AndroidLogger(final String logFileName, final Level logLevel, final String filePattern,
+	public AndroidLogger(final String logFileName, final Level LogType, final String logFilePattern,
 			final int maxBackupSize, final long maxFileSize) {
 		// set the logger level
-		setLogLevel(logLevel);
+		setLogLevel(LogType);
 		// set the name of the log file
 		setLogFileName(logFileName);
 		// set output format of the log line
-		setFilePattern(filePattern);
+		setLogFilePattern(logFilePattern);
 		// Maximum number of backed up log files
 		setMaxBackupSize(maxBackupSize);
 		// Maximum size of log file until rolling
@@ -481,20 +620,20 @@ public final class AndroidLogger {
 	/**
 	 * 
 	 * @param logFileName
-	 * @param logLevel
-	 * @param filePattern
+	 * @param LogType
+	 * @param logFilePattern
 	 */
-	public AndroidLogger(final String logFileName, final Level logLevel, final String filePattern) {
-		this(logFileName, logLevel, filePattern, MAX_BACKUP_FILES, MAX_FILE_SIZE);
+	public AndroidLogger(final String logFileName, final Level LogType, final String logFilePattern) {
+		this(logFileName, LogType, logFilePattern, MAX_BACKUP_FILES, MAX_FILE_SIZE);
 	}
 
 	/**
 	 * 
 	 * @param logFileName
-	 * @param logLevel
+	 * @param LogType
 	 */
-	public AndroidLogger(final String logFileName, final Level logLevel) {
-		this(logFileName, logLevel, DEFAULT_LOG_PATTERN);
+	public AndroidLogger(final String logFileName, final Level LogType) {
+		this(logFileName, LogType, DEFAULT_LOG_PATTERN);
 	}
 
 	/**
@@ -509,10 +648,10 @@ public final class AndroidLogger {
 	 * to log4j.properties <code>log4j.logger.org.apache.what.ever=ERROR</code>
 	 *
 	 * @param loggerName
-	 * @param logLevel
+	 * @param LogType
 	 */
-	public void setLevel(final String loggerName, final Level logLevel) {
-		Logger.getLogger(loggerName).setLevel(logLevel);
+	public void setLevel(final String loggerName, final Level LogType) {
+		Logger.getLogger(loggerName).setLevel(LogType);
 	}
 
 	/**
@@ -521,34 +660,34 @@ public final class AndroidLogger {
 	 * @return
 	 */
 	public Level getLogLevel() {
-		return logLevel;
+		return mLogLevel;
 	}
 
 	/**
-	 * The rootLevel logger to be set.
+	 * The mLogLevel logger to be set.
 	 *
-	 * @param level
+	 * @param logLevel
 	 */
 	public void setLogLevel(final Level logLevel) {
-		this.logLevel = logLevel;
+		this.mLogLevel = logLevel;
 	}
 
 	/**
-	 * Returns the filePattern.
+	 * Returns the mLogFilePattern.
 	 * 
 	 * @return
 	 */
-	public String getFilePattern() {
-		return filePattern;
+	public PatternLayout getLogFilePattern() {
+		return mLogFilePattern;
 	}
 
 	/**
-	 * The filePattern to be set.
+	 * The mLogFilePattern to be set.
 	 * 
-	 * @param filePattern
+	 * @param logFilePattern
 	 */
-	public void setFilePattern(final String filePattern) {
-		this.filePattern = filePattern;
+	public void setLogFilePattern(final String logFilePattern) {
+		mLogFilePattern = new PatternLayout(logFilePattern);
 	}
 
 	/**
@@ -759,7 +898,7 @@ public final class AndroidLogger {
 			/* Configures the file appender. */
 			final RollingFileAppender rollingFileAppender;
 			try {
-				rollingFileAppender = new RollingFileAppender(new PatternLayout(getFilePattern()), getLogFileName());
+				rollingFileAppender = new RollingFileAppender(getLogFilePattern(), getLogFileName());
 				rollingFileAppender.setMaxBackupIndex(getMaxBackupSize());
 				rollingFileAppender.setMaximumFileSize(getMaxFileSize());
 				rollingFileAppender.setImmediateFlush(isImmediateFlush());
@@ -767,15 +906,14 @@ public final class AndroidLogger {
 				throw new RuntimeException("Exception configuring system logger!", ex);
 			}
 
-			rootLogger.addAppender(rollingFileAppender);
+			mRootLogger.addAppender(rollingFileAppender);
 		}
 
 		if (isUseAndroidAppender()) {
 			/* Configures an android appender. */
-			rootLogger.addAppender(
-					new AndroidAppender(new PatternLayout(DEFAULT_TAG_LAYOUT), new PatternLayout(getFilePattern())));
+			mRootLogger.addAppender(new AndroidAppender(new PatternLayout(DEFAULT_TAG_LAYOUT), getLogFilePattern()));
 		}
 
-		rootLogger.setLevel(getLogLevel());
+		mRootLogger.setLevel(getLogLevel());
 	}
 }

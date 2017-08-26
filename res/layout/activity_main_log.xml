@@ -6,11 +6,12 @@
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
-    tools:context="com.rslakra.androidlogger.MainActivity" >
+    tools:context="com.rslakra.androidlogger.MainLogActivity" >
 
     <TextView
+        android:id="@+id/tvLogs"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/hello_world" />
+        android:text="@string/tvMessage" />
 
 </RelativeLayout>
