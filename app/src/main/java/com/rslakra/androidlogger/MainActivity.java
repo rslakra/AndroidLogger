@@ -37,7 +37,7 @@ public class MainActivity extends Activity {
         
         // Configure Android Logger
         final String logFolderPath = LogHelper.pathString(LogHelper.getAppRootFolder(getApplicationContext()), "logs");
-        LogHelper.log4jConfigure(logFolderPath, LogType.WARN);
+        LogHelper.log4jConfigure(logFolderPath, LogType.VERBOSE);
         
         //test file logger
         testFileLogger();
