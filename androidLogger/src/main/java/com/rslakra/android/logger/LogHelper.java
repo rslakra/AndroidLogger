@@ -652,7 +652,6 @@ public final class LogHelper {
     public static void d(final String logTag, final String logMessage) {
         if(isLogEnabledFor(LogType.DEBUG)) {
             if(isLog4JLogsEnabled()) {
-                Log.d(logTag, String.valueOf(getLogger(logTag).getLevel()));
                 getLogger(logTag).debug(logMessage);
             } else {
                 Log.d(logTag, validateString(logMessage));
