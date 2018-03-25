@@ -14,11 +14,25 @@ android {
     }
 
     buildTypes {
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    lintOptions {
+        abortOnError false
+    }
+
+    // Tells Gradle to build all variants of the library. Note that this
+    // may increase build times because Gradle must build multiple AARs,
+    // instead of only one.
+    publishNonDefault true
 
 }
 
