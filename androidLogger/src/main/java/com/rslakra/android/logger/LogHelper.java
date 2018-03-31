@@ -75,6 +75,9 @@ public final class LogHelper {
     /* EMPTY_STRING  */
     public static final String EMPTY_STRING = "".intern();
     
+    /* SPACE  */
+    public static final String SPACE = " ".intern();
+    
     /* LOG_FILE_NAME */
     private final static String LOG_FILE_NAME = "android.log";
     
@@ -103,8 +106,12 @@ public final class LogHelper {
      * Singleton object
      */
     private LogHelper() {
-        throw new UnsupportedOperationException("Object creation not allowed for this class.");
+        throw new UnsupportedOperationException("Object creation is not allowed for this class!");
     }
+    
+    /**************************************************************************
+     * Helper Methods.
+     **************************************************************************/
     
     /**
      * Returns true if the android version is greater than 10 (GINGERBREAD_MR1) otherwise false.
@@ -187,6 +194,76 @@ public final class LogHelper {
     }
     
     /**
+     * Returns the string representation of the specified <code>strings</code> array. If the
+     * specified <code>withNewLine</code> flag is set to be true, the new line character is added at
+     * the beginning and after each string in the array.
+     *
+     * @param strings
+     * @return
+     */
+    public static String toString(final String[] strings, final boolean withNewLine) {
+        final StringBuilder sBuilder = new StringBuilder();
+        if(strings != null) {
+            if(withNewLine) {
+                sBuilder.append("\n");
+            }
+            
+            for(String string : strings) {
+                sBuilder.append(string);
+                if(withNewLine) {
+                    sBuilder.append("\n");
+                } else {
+                    sBuilder.append(SPACE);
+                }
+            }
+        }
+        
+        return sBuilder.toString();
+    }
+    
+    /**
+     * Returns the string representation of the specified <code>strings</code> array.
+     *
+     * @param strings
+     * @return
+     */
+    public static String toString(final String[] strings) {
+        return toString(strings, false);
+    }
+    
+    /**
+     * Returns the string representation of the specified <code>object</code> object, if it's not
+     * null otherwise empty string.
+     *
+     * @param object
+     * @return
+     */
+    public static final String toString(final Object object) {
+        return (isNull(object) ? EMPTY_STRING : object.toString());
+    }
+    
+    /**
+     * Handy function to get a loggable stack trace from a Throwable.
+     *
+     * @param mThrowable
+     * @return
+     */
+    public static String toString(final Throwable mThrowable) {
+        return Log.getStackTraceString(mThrowable);
+    }
+    
+    /**
+     * Returns the formatted string for the given objects.
+     *
+     * @param format
+     * @param objects
+     * @return
+     */
+    private static final String format(final String format, final Object... objects) {
+        return String.format(format, objects);
+    }
+    
+    /**
      * Creates the folders/directory, if it does not exist.
      * <p>
      * a/b/c/d/file.log
@@ -201,7 +278,7 @@ public final class LogHelper {
             }
             
             if(mFile.getParentFile().exists() && !mFile.exists()) {
-                if(!mFile.mkdir()) {
+                if(!mFile.mkdirs()) {
                     LogHelper.w(LOG_TAG, "Unable to create [" + mFile.getAbsolutePath() + "] folder.");
                 }
             }
@@ -249,18 +326,29 @@ public final class LogHelper {
         return true;
     }
     
+    /**
+     * Returns the root folder of the app based on the given <code>mContext</code> context.
+     *
+     * @param mContext
+     * @return
+     */
+    public static final String getAppRootFolder(final Context mContext) {
+        return mContext.getFilesDir().getParent();
+    }
     
     /**
-     * Returns the given pathString from assets folder and returns it's input stream.
+     * Returns the <code>InputStream</code> from the assets folders for the given
+     * <code>pathString</code> asset.
      *
+     * @param context
      * @param pathString
-     * @return byte[]
+     * @return
      */
-    public static InputStream readAssets(final Context mContext, final String pathString) {
+    public static InputStream readAssets(final Context context, final String pathString) {
         InputStream assetStream = null;
-        if(isNotNull(mContext) && !isNullOrEmpty(pathString)) {
+        if(isNotNull(context) && !isNullOrEmpty(pathString)) {
             try {
-                assetStream = mContext.getAssets().open(pathString);
+                assetStream = context.getAssets().open(pathString);
             } catch(IOException ex) {
                 e(LOG_TAG, ex);
             }
@@ -270,13 +358,44 @@ public final class LogHelper {
     }
     
     /**
-     * Displays the given message as toast for short period of time.
+     * Returns the <code>InputStream</code> from the <code>../res/raw</code> folders for the given
+     * <code>fileName</code> resource.
+     * <p>
+     * Returns the given pathString from assets folder and returns it's input stream.
+     *
+     * @param context
+     * @param fileName
+     * @return
+     */
+    public static InputStream readRAWResources(final Context context, final String fileName) {
+        InputStream rawResourcesStream = null;
+        if(isNotNull(context) && !isNullOrEmpty(fileName)) {
+            rawResourcesStream = context.getResources().openRawResource(context.getResources().getIdentifier(fileName, "raw", context.getPackageName()));
+        }
+        
+        return rawResourcesStream;
+    }
+    
+    /**
+     * Displays the given <code>message</code> as toast for the given <code>duration</code> or
+     * period of time.
+     *
+     * @param context
+     * @param message
+     * @param duration
+     */
+    public static void showToastMessage(final Context context, final String message, final int duration) {
+        Toast.makeText(context, message, duration).show();
+    }
+    
+    /**
+     * Displays the given <code>message</code> as toast for the short period of time.
      *
      * @param context
      * @param message
      */
-    public static void showToastMessage(Context context, String message) {
-        Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
+    public static void showToastMessage(final Context context, final String message) {
+        showToastMessage(context, message, Toast.LENGTH_SHORT);
     }
     
     /**
@@ -299,16 +418,6 @@ public final class LogHelper {
                 parentActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
             }
         }
-    }
-    
-    /**
-     * Returns the root folder of the app based on the given <code>mContext</code> context.
-     *
-     * @param mContext
-     * @return
-     */
-    public static final String getAppRootFolder(final Context mContext) {
-        return mContext.getFilesDir().getParent();
     }
     
     /**************************************************************************
@@ -334,6 +443,17 @@ public final class LogHelper {
     }
     
     /**
+     * Return true if the given <code>logType</code> is same as the default log
+     * type otherwise false.
+     *
+     * @param logType
+     * @return
+     */
+    public static boolean isLogType(final LogType logType) {
+        return (getLogType() == logType);
+    }
+    
+    /**
      * Returns the sLog4JLogsEnabled value.
      *
      * @return
@@ -349,66 +469,6 @@ public final class LogHelper {
      */
     public static void setLog4JLogsEnabled(final boolean log4JLogsEnabled) {
         sLog4JLogsEnabled = log4JLogsEnabled;
-    }
-    
-    /**
-     * Return true if the given <code>logType</code> is same as the default log
-     * type otherwise false.
-     *
-     * @param logType
-     * @return
-     */
-    public static boolean isLogType(final LogType logType) {
-        return (getLogType() == logType);
-    }
-    
-    /**
-     * Converts the <code>LogType</code> object into <code>Level</code> object.
-     *
-     * @param logType
-     * @return Level
-     */
-    public static Level toLevel(final LogType logType) {
-        switch(logType) {
-            case SUPPRESS:
-                return Level.OFF;
-            case ERROR:
-                return Level.ERROR;
-            case WARN:
-                return Level.WARN;
-            case INFO:
-                return Level.INFO;
-            case DEBUG:
-                return Level.DEBUG;
-            case VERBOSE:
-                return Level.TRACE;
-            default:
-                throw new RuntimeException("Invalid logType:" + logType);
-        }
-    }
-    
-    /**
-     * Converts the <code>Level</code> object into <code>LogType</code> object.
-     *
-     * @param logLevel
-     * @return LogType
-     */
-    public static LogType toLogType(final Level logLevel) {
-        if(logLevel == Level.OFF) {
-            return LogType.SUPPRESS;
-        } else if(logLevel == Level.ERROR) {
-            return LogType.ERROR;
-        } else if(logLevel == Level.WARN) {
-            return LogType.WARN;
-        } else if(logLevel == Level.INFO) {
-            return LogType.INFO;
-        } else if(logLevel == Level.DEBUG) {
-            return LogType.DEBUG;
-        } else if(logLevel == Level.TRACE) {
-            return LogType.VERBOSE;
-        } else {
-            throw new RuntimeException("Invalid logLevel:" + logLevel);
-        }
     }
     
     /**
@@ -433,7 +493,7 @@ public final class LogHelper {
      *                                  <code>logType</code> otherwise false.
      */
     public static boolean isLogEnabledFor(final LogType logType) {
-        return (isNull(sLog4jConfigurator) ? false : sLog4jConfigurator.isLogEnabledFor(toLevel(logType)));
+        return (isNull(sLog4jConfigurator) ? false : sLog4jConfigurator.isLogEnabledFor(LogType.toLevel(logType)));
     }
     
     /**************************************************************************
@@ -514,7 +574,6 @@ public final class LogHelper {
      * Log4J Logger methods.
      **************************************************************************/
     
-    
     /**
      * Returns the <code>Logger</code> object for the specified
      * <code>logClass</code> class.
@@ -543,13 +602,31 @@ public final class LogHelper {
     }
     
     /**
-     * Returns the logger for this given className.
+     * Returns the <code>Logger</code> object for the specified
+     * <code>logClassName</code> class name.
+     * <p>
      *
-     * @param className
+     * @param logClassName
      * @return
      */
-    public static Logger getLogger(String className) {
-        return Logger.getLogger(className);
+    public static Logger getLogger(final String logClassName) {
+        Logger logger = null;
+        if(isNull(logClassName)) {
+            throw new IllegalArgumentException("logClass is NULL! it must provide!");
+        }
+        
+        logger = mCachedLoggers.get(logClassName);
+        if(isNull(logger)) {
+            synchronized(mCachedLoggers) {
+                if(isNull(logger)) {
+                    logger = Logger.getLogger(logClassName);
+                    /* cache this class logger to reuse */
+                    mCachedLoggers.put(logClassName, logger);
+                }
+            }
+        }
+        
+        return logger;
     }
     
     /**
@@ -561,54 +638,41 @@ public final class LogHelper {
         return (sLog4jConfigurator.isLogEnabledFor(Level.INFO));
     }
     
-    
     /**************************************************************************
-     * Helpers methods.
+     * Log Helper Methods.
      **************************************************************************/
     
     /**
-     * Returns the formatted string for the given objects.
+     * Logs ERROR messages.
      *
-     * @param format
-     * @param objects
-     * @return
-     */
-    private static final String format(final String format, final Object... objects) {
-        return String.format(format, objects);
-    }
-    
-    /**
-     * Converts the given object into string, if its not null.
-     *
-     * @param object
-     * @return
-     */
-    public static final String toString(final Object object) {
-        return (object == null ? EMPTY_STRING : object.toString());
-    }
-    
-    /**
-     * Returns (null) for the null string.
-     *
+     * @param logTag
      * @param logMessage
-     * @return
      */
-    private static final String validateString(final String logMessage) {
-        return (logMessage == null ? EMPTY_STRING : logMessage);
+    public static void e(final String logTag, final String logMessage) {
+        if(isLogEnabledFor(LogType.ERROR)) {
+            if(isLog4JLogsEnabled()) {
+                getLogger(logTag).error(logMessage);
+            } else {
+                Log.e(logTag, toString(logMessage));
+            }
+        }
     }
     
-    /**************************************************************************
-     * Log methods.
-     **************************************************************************/
-    
     /**
-     * Handy function to get a loggable stack trace from a Throwable.
+     * Logs ERROR messages.
      *
-     * @param mThrowable
-     * @return
+     * @param logTag
+     * @param logMessage
+     * @param throwable
      */
-    public static String getStackTraceString(final Throwable mThrowable) {
-        return Log.getStackTraceString(mThrowable);
+    public static void e(final String logTag, final String logMessage, final Throwable throwable) {
+        if(isLogEnabledFor(LogType.ERROR)) {
+            if(isLog4JLogsEnabled()) {
+                getLogger(logTag).error(logMessage, throwable);
+            } else {
+                Log.e(logTag, toString(logMessage), throwable);
+            }
+        }
     }
     
     /**
@@ -622,7 +686,7 @@ public final class LogHelper {
             if(isLog4JLogsEnabled()) {
                 getLogger(logTag).warn(logMessage);
             } else {
-                Log.w(logTag, validateString(logMessage));
+                Log.w(logTag, toString(logMessage));
             }
         }
     }
@@ -638,7 +702,7 @@ public final class LogHelper {
             if(isLog4JLogsEnabled()) {
                 getLogger(logTag).info(logMessage);
             } else {
-                Log.i(logTag, validateString(logMessage));
+                Log.i(logTag, toString(logMessage));
             }
         }
     }
@@ -654,7 +718,7 @@ public final class LogHelper {
             if(isLog4JLogsEnabled()) {
                 getLogger(logTag).debug(logMessage);
             } else {
-                Log.d(logTag, validateString(logMessage));
+                Log.d(logTag, toString(logMessage));
             }
         }
     }
@@ -670,40 +734,7 @@ public final class LogHelper {
             if(isLog4JLogsEnabled()) {
                 getLogger(logTag).debug(logMessage);
             } else {
-                Log.v(logTag, validateString(logMessage));
-            }
-        }
-    }
-    
-    /**
-     * Logs ERROR messages.
-     *
-     * @param logTag
-     * @param logMessage
-     */
-    public static void e(final String logTag, final String logMessage) {
-        if(isLogEnabledFor(LogType.ERROR)) {
-            if(isLog4JLogsEnabled()) {
-                getLogger(logTag).error(logMessage);
-            } else {
-                Log.e(logTag, validateString(logMessage));
-            }
-        }
-    }
-    
-    /**
-     * Logs ERROR messages.
-     *
-     * @param logTag
-     * @param throwable
-     * @param logMessage
-     */
-    public static void e(final String logTag, final Throwable throwable, final String logMessage) {
-        if(isLogEnabledFor(LogType.ERROR)) {
-            if(isLog4JLogsEnabled()) {
-                getLogger(logTag).error(logMessage, throwable);
-            } else {
-                Log.e(logTag, validateString(logMessage), throwable);
+                Log.v(logTag, toString(logMessage));
             }
         }
     }
@@ -740,7 +771,7 @@ public final class LogHelper {
      * @param throwable
      */
     public static void e(final String logTag, final Throwable throwable) {
-        e(logTag, throwable, throwable.getLocalizedMessage());
+        e(logTag, throwable.getLocalizedMessage(), throwable);
     }
     
     /**
@@ -752,7 +783,7 @@ public final class LogHelper {
      * @param logArguments
      */
     public static void e(final String logTag, final Throwable throwable, final String format, final Object... logArguments) {
-        e(logTag, throwable, format(format, logArguments));
+        e(logTag, format(format, logArguments), throwable);
     }
     
     

@@ -28,6 +28,8 @@
  *****************************************************************************/
 package com.rslakra.android.logger;
 
+import org.apache.log4j.Level;
+
 /**
  * This ENUM handles the logTypes supported by <code>Logger</code>.
  *
@@ -40,4 +42,103 @@ package com.rslakra.android.logger;
 public enum LogType {
     /* ASSERT type is for future usage. Don't use it. */
     SUPPRESS, ASSERT, ERROR, WARN, INFO, DEBUG, VERBOSE;
+    
+    /**
+     * Returns true if the <code>logType</code> equals to <code>logTypeString</code> otherwise
+     * false. If the <code>ignoreCase</code> is set to be true, the result is based on ignoring the
+     * case.
+     *
+     * @param logType
+     * @param logTypeString
+     * @param ignoreCase
+     * @return
+     */
+    public static boolean isEqual(final LogType logType, final String logTypeString, final boolean ignoreCase) {
+        if(LogHelper.isNull(logType) || LogHelper.isNullOrEmpty(logTypeString)) {
+            return false;
+        } else if(ignoreCase) {
+            return (logType.toString().toLowerCase().equals(logTypeString.toLowerCase()));
+        } else {
+            return (logType.toString().equals(logTypeString));
+        }
+    }
+    
+    /**
+     * Returns true if the <code>logType</code> equals to <code>logTypeString</code> otherwise
+     * false. This result is based on ignoring the case.
+     *
+     * @param logType
+     * @param logTypeString
+     * @return
+     */
+    public static boolean isEqual(final LogType logType, final String logTypeString) {
+        return isEqual(logType, logTypeString, true);
+    }
+    
+    /**
+     * Returns the <code>LogType</code> for the given <code>logType</code> string.
+     *
+     * @param logTypeString
+     * @return
+     */
+    public static LogType toLogType(final String logTypeString) {
+        final LogType[] logTypes = LogType.values();
+        for(LogType logType : logTypes) {
+            if(isEqual(logType, logTypeString)) {
+                return logType;
+            }
+        }
+        
+        throw new RuntimeException("Invalid logType:" + logTypeString);
+    }
+    
+    
+    /**
+     * Converts the <code>LogType</code> object into <code>Level</code> object.
+     *
+     * @param logType
+     * @return Level
+     */
+    public static Level toLevel(final LogType logType) {
+        switch(logType) {
+            case SUPPRESS:
+                return Level.OFF;
+            case ERROR:
+                return Level.ERROR;
+            case WARN:
+                return Level.WARN;
+            case INFO:
+                return Level.INFO;
+            case DEBUG:
+                return Level.DEBUG;
+            case VERBOSE:
+                return Level.TRACE;
+            default:
+                throw new RuntimeException("Invalid logType:" + logType);
+        }
+    }
+    
+    /**
+     * Converts the <code>Level</code> object into <code>LogType</code> object.
+     *
+     * @param logLevel
+     * @return LogType
+     */
+    public static LogType toLogType(final Level logLevel) {
+        if(logLevel == Level.OFF) {
+            return SUPPRESS;
+        } else if(logLevel == Level.ERROR) {
+            return ERROR;
+        } else if(logLevel == Level.WARN) {
+            return WARN;
+        } else if(logLevel == Level.INFO) {
+            return INFO;
+        } else if(logLevel == Level.DEBUG) {
+            return DEBUG;
+        } else if(logLevel == Level.TRACE) {
+            return VERBOSE;
+        } else {
+            throw new RuntimeException("Invalid logLevel:" + logLevel);
+        }
+    }
 }
