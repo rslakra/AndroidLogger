@@ -493,7 +493,11 @@ public final class LogHelper {
      *                                  <code>logType</code> otherwise false.
      */
     public static boolean isLogEnabledFor(final LogType logType) {
-        return (isNull(sLog4jConfigurator) ? false : sLog4jConfigurator.isLogEnabledFor(LogType.toLevel(logType)));
+        if(isLog4JLogsEnabled()) {
+            return (isNotNull(sLog4jConfigurator) && sLog4jConfigurator.isLogEnabledFor(LogType.toLevel(logType)));
+        } else {
+            return (isNotNull(logType) && logType.ordinal() >= getLogType().ordinal());
+        }
     }
     
     /**************************************************************************
@@ -511,6 +515,7 @@ public final class LogHelper {
      * @param maxFileSize
      */
     public static void log4jConfigure(final String logFolderPath, final String fileName, final LogType logLevel, final String logPattern, final int maxBackupFiles, final long maxFileSize) {
+        setLog4JLogsEnabled(true);
         setLogType(logLevel);
         sLog4jConfigurator.configure(logFolderPath, fileName, Level.toLevel(logLevel.toString()), logPattern, maxBackupFiles, maxFileSize);
     }
@@ -635,7 +640,7 @@ public final class LogHelper {
      * @return
      */
     public static boolean isLogEnabledForProduction() {
-        return (sLog4jConfigurator.isLogEnabledFor(Level.INFO));
+        return isLogEnabledFor(LogType.INFO);
     }
     
     /**************************************************************************
