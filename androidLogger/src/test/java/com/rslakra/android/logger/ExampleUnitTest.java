@@ -1,8 +1,9 @@
 package com.rslakra.android.logger;
 
+import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Example local unit test, which will execute on the development machine (host).
@@ -11,12 +12,21 @@ import static org.junit.Assert.*;
  */
 public class ExampleUnitTest {
     
+    private final String LOG_TYPE = "ExampleUnitTest";
+    
+    @Before
+    public void configure() {
+        final String logFolderPath = LogHelper.pathString(LogHelper.getUserDir(), "logs");
+        LogHelper.log4jConfigure(logFolderPath, LogType.DEBUG);
+    }
+    
     /**
      * @throws Exception
      */
     @Test
     public void isDebugEnabled() throws Exception {
-        assertEquals(false, LogHelper.isLogEnabledFor(LogType.DEBUG));
+        LogHelper.setLogType(LogType.DEBUG);
+        assertEquals(true, LogHelper.isLogEnabledFor(LogType.DEBUG));
     }
     
     /**
@@ -24,6 +34,7 @@ public class ExampleUnitTest {
      */
     @Test
     public void isInfoEnabled() throws Exception {
+        LogHelper.setLogType(LogType.INFO);
         assertEquals(true, LogHelper.isLogEnabledFor(LogType.INFO));
     }
     
@@ -32,6 +43,7 @@ public class ExampleUnitTest {
      */
     @Test
     public void isWarnEnabled() throws Exception {
+        LogHelper.setLogType(LogType.WARN);
         assertEquals(true, LogHelper.isLogEnabledFor(LogType.WARN));
     }
     
@@ -40,6 +52,7 @@ public class ExampleUnitTest {
      */
     @Test
     public void isErrorEnabled() throws Exception {
+        LogHelper.setLogType(LogType.ERROR);
         assertEquals(true, LogHelper.isLogEnabledFor(LogType.ERROR));
     }
     
@@ -48,6 +61,7 @@ public class ExampleUnitTest {
      */
     @Test
     public void isLogDisabled() throws Exception {
+        LogHelper.setLogType(LogType.SUPPRESS);
         assertEquals(true, LogHelper.isLogEnabledFor(LogType.SUPPRESS));
     }
     

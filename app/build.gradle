@@ -18,7 +18,7 @@ android {
 }
 
 dependencies {
-//    implementation project(':androidLogger')
-    implementation(name:'androidLogger-release', ext:'aar')
-//    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation project(':androidLogger')
+//    implementation(name:'androidLogger-release', ext:'aar')
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
 }

@@ -30,6 +30,17 @@ android {
     // instead of only one.
     publishNonDefault true
 
+
+    testOptions {
+
+        unitTests.all {
+            // All the usual Gradle options.
+            jvmArgs '-XX:MaxPermSize=256m'
+        }
+
+        unitTests.returnDefaultValues = true
+    }
+
 }
 
 dependencies {

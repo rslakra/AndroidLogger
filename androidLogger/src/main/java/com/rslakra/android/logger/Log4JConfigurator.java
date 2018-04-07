@@ -59,7 +59,7 @@ public final class Log4JConfigurator {
     /**
      * LOG_TAG
      */
-    public static final String LOG_TAG = "Log4JConfigurator".intern();
+    private static final String LOG_TAG = "Log4JConfigurator".intern();
     
     /**
      * mRootLogger
@@ -95,6 +95,7 @@ public final class Log4JConfigurator {
             synchronized(Log4JConfigurator.class) {
                 if(mRootLogger == null) {
                     mRootLogger = Logger.getRootLogger();
+                    mRootLogger.setLevel(getLogLevel());
                 }
             }
         }
@@ -128,43 +129,42 @@ public final class Log4JConfigurator {
      * Configures the file appender.
      */
     private void configureFileAppender() {
-        final RollingFileAppender rollingFileAppender;
-        
         try {
-            final File mFile = new File(getLogFilePath());
+            final File logFile = new File(getLogFilePath());
             /** Check logs file exists or not. */
-            if(!mFile.exists()) {
+            if(!logFile.exists()) {
                 /** Create logs folder, if it does not exist. */
-                if(!mFile.getParentFile().exists()) {
-                    if(!mFile.getParentFile().mkdirs()) {
-                        Log.w(LOG_TAG, "Unable to create parent logs folder:" + mFile.getParentFile().getAbsolutePath());
+                if(!logFile.getParentFile().exists()) {
+                    if(!logFile.getParentFile().mkdirs()) {
+                        Log.w(LOG_TAG, "Unable to create folder:" + logFile.getParentFile().getAbsolutePath());
                     }
                 }
                 
                 /** Create log file, if it does not exist. */
-                if(!mFile.createNewFile()) {
-                    Log.w(LOG_TAG, "Unable to create logs file:" + mFile.getAbsolutePath());
+                if(!logFile.createNewFile()) {
+                    Log.w(LOG_TAG, "Unable to create logs file:" + logFile.getAbsolutePath());
                 }
             }
-            rollingFileAppender = new RollingFileAppender(new PatternLayout(getLogPattern()), getLogFilePath());
+            final RollingFileAppender rollingFileAppender = new RollingFileAppender(new PatternLayout(getLogPattern()), getLogFilePath());
             Log.d(LOG_TAG, "Logs configured at:" + getLogFilePath());
+            
+            rollingFileAppender.setMaxBackupIndex(getMaxBackupFiles());
+            rollingFileAppender.setMaximumFileSize(getMaxFileSize());
+            rollingFileAppender.setImmediateFlush(isImmediateFlush());
+            
+            /** set file appender to root logger. */
+            getRootLogger().addAppender(rollingFileAppender);
         } catch(final IOException ex) {
             Log.e(LOG_TAG, ex.getLocalizedMessage(), ex);
             throw new RuntimeException("Error while configuring logger!", ex);
         }
-        
-        rollingFileAppender.setMaxBackupIndex(getMaxBackupFiles());
-        rollingFileAppender.setMaximumFileSize(getMaxFileSize());
-        rollingFileAppender.setImmediateFlush(isImmediateFlush());
-        
-        /** set file appender to root logger. */
-        getRootLogger().addAppender(rollingFileAppender);
     }
     
     /**
      * Configures the logger for file appender and android.
      */
-    public void configure() {
+    private void configure() {
+        getRootLogger().setLevel(getLogLevel());
         if(isResetConfiguration()) {
             LogManager.getLoggerRepository().resetConfiguration();
         }
@@ -178,71 +178,6 @@ public final class Log4JConfigurator {
         if(isUseFileAppender()) {
             configureFileAppender();
         }
-        
-        getRootLogger().setLevel(getLogLevel());
-    }
-    
-    /**
-     * @param logsFolder
-     */
-    public void configure(final String logsFolder) {
-        // set the the log folder
-        if(LogHelper.isNullOrEmpty(logsFolder)) {
-            throw new IllegalArgumentException("logsFolder is either NULL or EMPTY!");
-        }
-        setLogsFolder(logsFolder);
-        configure();
-    }
-    
-    /**
-     * @param logsFolder
-     * @param fileName   Name of the log file
-     */
-    public void configure(final String logsFolder, final String fileName) {
-        // set the the log file name
-        if(LogHelper.isNullOrEmpty(fileName)) {
-            throw new IllegalArgumentException("fileName is either NULL or EMPTY!");
-        }
-        setFileName(fileName);
-        configure(logsFolder);
-    }
-    
-    /**
-     * @param logsFolder
-     * @param fileName   Name of the log file
-     * @param logLevel   Log level for the root logger
-     */
-    public void configure(final String logsFolder, final String fileName, final Level logLevel) {
-        // set the the log level
-        if(logLevel == null) {
-            throw new NullPointerException("The root logLevel should not be NULL!");
-        }
-        setLogLevel(logLevel);
-        configure(logsFolder, fileName);
-    }
-    
-    
-    /**
-     * @param logsFolder
-     * @param fileName   Name of the log file
-     * @param logLevel   Log level for the root logger
-     * @param logPattern Log pattern for the file appender
-     */
-    public void configure(final String logsFolder, final String fileName, final Level logLevel, final String logPattern) {
-        setLogPattern(logPattern);
-        configure(logsFolder, fileName, logLevel);
-    }
-    
-    /**
-     * @param logsFolder
-     * @param fileName       Name of the log file
-     * @param logLevel       Log level for the root logger
-     * @param logPattern     Log pattern for the file appender
-     * @param maxBackupFiles Maximum number of backed up log files
-     */
-    public void configure(final String logsFolder, final String fileName, final Level logLevel, final String logPattern, final int maxBackupFiles) {
-        setMaxBackupFiles(maxBackupFiles);
-        configure(logsFolder, fileName, logLevel, logPattern);
     }
     
     /**
@@ -254,8 +189,31 @@ public final class Log4JConfigurator {
      * @param maxFileSize    Maximum size of log file until rolling
      */
     public void configure(final String logsFolder, final String fileName, final Level logLevel, final String logPattern, final int maxBackupFiles, final long maxFileSize) {
+        /* setting all the properties in the reverse order. */
         setMaxFileSize(maxFileSize);
-        configure(logsFolder, fileName, logLevel, logPattern, maxBackupFiles);
+        setMaxBackupFiles(maxBackupFiles);
+        setLogPattern(logPattern);
+        
+        // set the the log level
+        if(logLevel == null) {
+            throw new NullPointerException("The root logLevel should not be NULL!");
+        }
+        setLogLevel(logLevel);
+        
+        // set the the log file name
+        if(LogHelper.isNullOrEmpty(fileName)) {
+            throw new IllegalArgumentException("fileName is either NULL or EMPTY!");
+        }
+        setFileName(fileName);
+        
+        // set the the log folder
+        if(LogHelper.isNullOrEmpty(logsFolder)) {
+            throw new IllegalArgumentException("logsFolder is either NULL or EMPTY!");
+        }
+        setLogsFolder(logsFolder);
+        
+        //configure the log4j logger
+        configure();
     }
     
     /**

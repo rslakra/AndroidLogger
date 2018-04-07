@@ -28,3 +28,8 @@ allprojects {
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
+
+task copyAARFile(type: Copy) {
+    from 'androidLogger/build/outputs/aar/androidLogger-release.aar'
+    into rootProject.file("/app/libs")
+}

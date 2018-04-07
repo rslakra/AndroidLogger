@@ -19,6 +19,6 @@
 #
 
 clear
-./gradlew clean build
+./gradlew clean build copyAARFile
 #./gradlew assembleDebug --debug --stacktrace
 #./gradlew assembleRelease --debug --stacktrace
