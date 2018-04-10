@@ -17,7 +17,7 @@ public class ExampleUnitTest {
     @Before
     public void configure() {
         final String logFolderPath = LogHelper.pathString(LogHelper.getUserDir(), "logs");
-        LogHelper.log4jConfigure(logFolderPath, LogType.DEBUG);
+        LogHelper.log4JConfigure(logFolderPath, LogType.DEBUG);
     }
     
     /**

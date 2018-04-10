@@ -45,8 +45,7 @@ import org.apache.log4j.PropertyConfigurator;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Properties;
 
 /**
  * See
@@ -78,20 +77,44 @@ public final class LogHelper {
     /* SPACE  */
     public static final String SPACE = " ".intern();
     
+    /* ANDROID_LOG4J_PROPERTIES  */
+    public static final String ANDROID_LOG4J_PROPERTIES = "android_log4j.properties".intern();
+    
     /* ANDROID_LOG4J_XML  */
-    public static final String ANDROID_LOG4J_XML = "android_log4j.xml".intern();
+    private static final String ANDROID_LOG4J_XML = "android_log4j.xml".intern();
+    
+    /* LOG4J_ROOT_LOGGER */
+    private final static String LOG4J_ROOT_LOGGER = "log4j.rootLogger";
+    
+    /* CONSOLE_LOG_PATTERN */
+    private final static String CONSOLE_LOG_PATTERN = "log4j.appender.console.layout.ConversionPattern";
+    
+    /* KEY_RFA_FILE */
+    private final static String KEY_RFA_FILE = "log4j.appender.RFA.File";
+    
+    /* KEY_RFA_MAX_FILE_SIZE */
+    private final static String KEY_RFA_MAX_FILE_SIZE = "log4j.appender.RFA.MaxFileSize";
+    
+    /* KEY_RFA_MAX_BACKUP_FILES */
+    private final static String KEY_RFA_MAX_BACKUP_FILES = "log4j.appender.RFA.MaxBackupIndex";
+    
+    /* KEY_RFA_LOG_PATTERN */
+    private final static String KEY_RFA_LOG_PATTERN = "log4j.appender.RFA.layout.ConversionPattern";
     
     /* LOG_FILE_NAME */
-    private final static String LOG_FILE_NAME = "android.log";
+    public final static String LOG_FILE_NAME = "android.log";
     
     /* maximum 3 files */
-    private final static int MAX_BACKUP_FILES = 3;
+    public final static int MAX_BACKUP_FILES = 2;
     
-    /* 5 MB */
-    private final static long MAX_FILE_SIZE = 1024 * 1024 * 5;
+    /* MB_SIZE */
+    public final static long MB_SIZE = 1024 * 1024;
+    
+    /* 2 MB */
+    public final static long MAX_FILE_SIZE = MB_SIZE * 2;
     
     /* LOG_PATTERN */
-    private final static String LOG_PATTERN = "[%d{yyyy-MM-dd HH:mm:ss.S}] %5p [%t] [%c{1}(%L)] - %m%n";
+    public final static String LOG_PATTERN = "[%d{yyyy-MM-dd HH:mm:ss.S}] %5p [%t] [%c{1}(%L)] - %m%n";
     
     /* mLogType */
     private static LogType sLogType = LogType.INFO;
@@ -99,11 +122,8 @@ public final class LogHelper {
     /* log4JLogsEnabled */
     private static boolean sLog4JLogsEnabled = false;
     
-    /* sLog4jConfigurator */
-    private final static Log4JConfigurator sLog4jConfigurator = new Log4JConfigurator();
-    
-    /* mCachedLoggers. */
-    private static final Map<String, Logger> mCachedLoggers = new ConcurrentHashMap<String, Logger>();
+    /* sLog4JConfigurator */
+    private final static Log4JConfigurator sLog4JConfigurator = new Log4JConfigurator();
     
     /**
      * Singleton object
@@ -255,7 +275,7 @@ public final class LogHelper {
     
     /**
      * Returns the string representation of the specified <code>object</code> object, if it's not
-     * null otherwise empty string.
+     * <code>null</code> otherwise empty string.
      *
      * @param object
      * @return
@@ -442,6 +462,23 @@ public final class LogHelper {
         }
     }
     
+    /**
+     * Loads the <code>Properties</code> object for the specified <code>inputStream</code>.
+     *
+     * @param inputStream
+     * @return
+     */
+    public static final Properties loadProperties(final InputStream inputStream) {
+        final Properties mProperties = new Properties();
+        try {
+            mProperties.load(inputStream);
+        } catch(Exception ex) {
+            Log.e(LOG_TAG, "Error loading properties file from the stream!", ex);
+        }
+        
+        return mProperties;
+    }
+    
     /**************************************************************************
      * Log Helper and Logger Configuration Methods.
      **************************************************************************/
@@ -452,7 +489,7 @@ public final class LogHelper {
      * @return
      */
     public static LogType getLogType() {
-        return (isLog4JLogsEnabled() ? LogType.toLogType(sLog4jConfigurator.getLogLevel()) : sLogType);
+        return (isLog4JLogsEnabled() ? LogType.toLogType(sLog4JConfigurator.getLogLevel()) : sLogType);
     }
     
     /**
@@ -460,9 +497,9 @@ public final class LogHelper {
      *
      * @param logType
      */
-    public static void setLogType(final LogType logType) {
+    public static final void setLogType(final LogType logType) {
         if(isLog4JLogsEnabled()) {
-            sLog4jConfigurator.setLogLevel(LogType.toLevel(logType));
+            sLog4JConfigurator.setLogLevel(LogType.toLevel(logType));
         }
         sLogType = logType;
     }
@@ -474,7 +511,7 @@ public final class LogHelper {
      * @param logType
      * @return
      */
-    public static boolean isLogType(final LogType logType) {
+    public static final boolean isLogType(final LogType logType) {
         return (getLogType() == logType);
     }
     
@@ -493,7 +530,9 @@ public final class LogHelper {
      * @param log4JLogsEnabled
      */
     public static void setLog4JLogsEnabled(final boolean log4JLogsEnabled) {
-        sLog4JLogsEnabled = log4JLogsEnabled;
+        if(sLog4JLogsEnabled != log4JLogsEnabled) {
+            sLog4JLogsEnabled = log4JLogsEnabled;
+        }
     }
     
     /**
@@ -519,7 +558,7 @@ public final class LogHelper {
      */
     public static boolean isLogEnabledFor(final LogType logType) {
         if(isLog4JLogsEnabled()) {
-            return (isNotNull(sLog4jConfigurator) && sLog4jConfigurator.isLogEnabledFor(LogType.toLevel(logType)));
+            return (sLog4JConfigurator.isLogEnabledFor(LogType.toLevel(logType)));
         } else {
             return (isNotNull(logType) && logType.ordinal() >= getLogType().ordinal());
         }
@@ -529,9 +568,8 @@ public final class LogHelper {
      * Configure Log4J logger
      **************************************************************************/
     
-    
     /**
-     * Configures the logger with the given settings.
+     * The Log4J logger is configured based on the specified configurations.
      *
      * @param logFolderPath
      * @param fileName
@@ -540,9 +578,29 @@ public final class LogHelper {
      * @param maxBackupFiles
      * @param maxFileSize
      */
-    public static void log4jConfigure(final String logFolderPath, final String fileName, final LogType logLevel, final String logPattern, final int maxBackupFiles, final long maxFileSize) {
+    public static void log4JConfigure(final String logFolderPath, final String fileName, final LogType logLevel, final String logPattern, final int maxBackupFiles, final long maxFileSize) {
         setLog4JLogsEnabled(true);
-        sLog4jConfigurator.configure(logFolderPath, fileName, LogType.toLevel(logLevel), logPattern, maxBackupFiles, maxFileSize);
+        /* setting all the properties in the reverse order. */
+        /** the logs folder to be set. */
+        sLog4JConfigurator.setLogsFolder(logFolderPath);
+        
+        /** the log file name to be set. */
+        sLog4JConfigurator.setFileName(fileName);
+        
+        /** the root log level to be set. */
+        sLog4JConfigurator.setLogLevel(LogType.toLevel(logLevel));
+        
+        /** the logs pattern to be set. */
+        sLog4JConfigurator.setLogPattern(logPattern);
+        
+        /** the maximum number of backup files to be created. */
+        sLog4JConfigurator.setMaxBackupFiles(maxBackupFiles);
+        
+        /** the maximum log file size to be set. */
+        sLog4JConfigurator.setMaxFileSize(maxFileSize);
+        
+        //configure the log4j logger
+        sLog4JConfigurator.configure();
     }
     
     /**
@@ -554,9 +612,8 @@ public final class LogHelper {
      * @param logPattern
      * @param maxBackupFiles
      */
-    public static void log4jConfigure(final String logFolderPath, final String fileName, final LogType logLevel, final String logPattern, final int maxBackupFiles) {
-        setLog4JLogsEnabled(true);
-        sLog4jConfigurator.configure(logFolderPath, fileName, LogType.toLevel(logLevel), logPattern, maxBackupFiles, MAX_FILE_SIZE);
+    public static void log4JConfigure(final String logFolderPath, final String fileName, final LogType logLevel, final String logPattern, final int maxBackupFiles) {
+        log4JConfigure(logFolderPath, fileName, logLevel, logPattern, maxBackupFiles, MAX_FILE_SIZE);
     }
     
     /**
@@ -567,9 +624,8 @@ public final class LogHelper {
      * @param logLevel
      * @param logPattern
      */
-    public static void log4jConfigure(final String logFolderPath, final String fileName, final LogType logLevel, final String logPattern) {
-        setLog4JLogsEnabled(true);
-        sLog4jConfigurator.configure(logFolderPath, fileName, LogType.toLevel(logLevel), logPattern, MAX_BACKUP_FILES, MAX_FILE_SIZE);
+    public static void log4JConfigure(final String logFolderPath, final String fileName, final LogType logLevel, final String logPattern) {
+        log4JConfigure(logFolderPath, fileName, logLevel, logPattern, MAX_BACKUP_FILES, MAX_FILE_SIZE);
     }
     
     /**
@@ -579,9 +635,8 @@ public final class LogHelper {
      * @param fileName
      * @param logLevel
      */
-    public static void log4jConfigure(final String logFolderPath, final String fileName, final LogType logLevel) {
-        setLog4JLogsEnabled(true);
-        sLog4jConfigurator.configure(logFolderPath, fileName, LogType.toLevel(logLevel), LOG_PATTERN, MAX_BACKUP_FILES, MAX_FILE_SIZE);
+    public static void log4JConfigure(final String logFolderPath, final String fileName, final LogType logLevel) {
+        log4JConfigure(logFolderPath, fileName, logLevel, LOG_PATTERN, MAX_BACKUP_FILES, MAX_FILE_SIZE);
     }
     
     /**
@@ -590,9 +645,8 @@ public final class LogHelper {
      * @param logFolderPath
      * @param logLevel
      */
-    public static void log4jConfigure(final String logFolderPath, final LogType logLevel) {
-        setLog4JLogsEnabled(true);
-        sLog4jConfigurator.configure(logFolderPath, LOG_FILE_NAME, LogType.toLevel(logLevel), LOG_PATTERN, MAX_BACKUP_FILES, MAX_FILE_SIZE);
+    public static void log4JConfigure(final String logFolderPath, final LogType logLevel) {
+        log4JConfigure(logFolderPath, LOG_FILE_NAME, logLevel, LOG_PATTERN, MAX_BACKUP_FILES, MAX_FILE_SIZE);
     }
     
     /**
@@ -600,30 +654,93 @@ public final class LogHelper {
      *
      * @param logFolderPath
      */
-    public static void log4jConfigure(final String logFolderPath) {
+    public static void log4JConfigure(final String logFolderPath) {
+        log4JConfigure(logFolderPath, LOG_FILE_NAME, LogType.INFO, LOG_PATTERN, MAX_BACKUP_FILES, MAX_FILE_SIZE);
+    }
+    
+    /**
+     * Initializes the logger with the <code>log4JFileStream</code> input stream.
+     * If the <code>log4JFileStream</code> is null or empty then the <code>useXMLConfig</code>
+     * property is checked to load the default configuration file. if <code>useXMLConfig</code> is
+     * set to be true, then the <code>android_log4j.xml</code> file is used otherwise the
+     * <code>android_log4j.properties</code> is used to configure the logger.
+     *
+     * @param logFolderPath
+     * @param context
+     * @param log4JFileStream
+     * @param useXMLConfig
+     */
+    public static void log4JConfigure(final String logFolderPath, final Context context, InputStream log4JFileStream, final boolean useXMLConfig) {
         setLog4JLogsEnabled(true);
-        sLog4jConfigurator.configure(logFolderPath, LOG_FILE_NAME, LogType.toLevel(LogType.INFO), LOG_PATTERN, MAX_BACKUP_FILES, MAX_FILE_SIZE);
+        if(isNull(log4JFileStream)) {
+            if(useXMLConfig) {
+                log4JFileStream = readAssets(context, ANDROID_LOG4J_XML);
+            } else {
+                log4JFileStream = readAssets(context, ANDROID_LOG4J_PROPERTIES);
+            }
+        }
+        
+        if(isNull(log4JFileStream)) {
+            throw new RuntimeException((useXMLConfig ? ANDROID_LOG4J_XML : ANDROID_LOG4J_PROPERTIES) + " configuration file did not find!");
+        }
+        
+        if(useXMLConfig && false) {
+            /* TODO - Find a way to override the log file path based on the specified logFileName. */
+            /* loads the provided log4j file. */
+            PropertyConfigurator.configure(log4JFileStream);
+        } else {
+            final Properties mProperties = loadProperties(log4JFileStream);
+            if(mProperties.size() == 0) {
+                throw new RuntimeException("Invalid [" + ANDROID_LOG4J_PROPERTIES + "] configuration file!");
+            }
+            setLog4JLogsEnabled(true);
+            /* setting all the properties in the reverse order. */
+            /** the logs folder to be set. */
+            sLog4JConfigurator.setLogsFolder(logFolderPath);
+            
+            /** the log file name to be set. */
+            sLog4JConfigurator.setFileName(mProperties.getProperty(KEY_RFA_FILE, LOG_FILE_NAME));
+            
+            /** the root log level to be set. */
+            String rootLogger = mProperties.getProperty(LOG4J_ROOT_LOGGER, LogType.INFO.toString());
+            if(isNullOrEmpty(rootLogger) || rootLogger.length() < 8) {
+                throw new RuntimeException("Invalid [" + ANDROID_LOG4J_PROPERTIES + "] file! rootLogger:" + rootLogger);
+            } else {
+                rootLogger = rootLogger.split(",")[0];
+            }
+            sLog4JConfigurator.setLogLevel(LogType.toLevel(LogType.valueOf(rootLogger)));
+            
+            /** the logs pattern to be set. */
+            sLog4JConfigurator.setLogPattern(mProperties.getProperty(KEY_RFA_LOG_PATTERN, LOG_PATTERN));
+            
+            /** the maximum number of backup files to be created. */
+            sLog4JConfigurator.setMaxBackupFiles(Integer.parseInt(mProperties.getProperty(KEY_RFA_MAX_BACKUP_FILES, String.valueOf(MAX_BACKUP_FILES))));
+            
+            /** the maximum log file size to be set. */
+            sLog4JConfigurator.setMaxFileSize(Integer.parseInt(mProperties.getProperty(KEY_RFA_MAX_FILE_SIZE, "2")) * MB_SIZE);
+            
+            //configure the log4j logger
+            sLog4JConfigurator.configure();
+//            PropertyConfigurator.configure(loadProperties(log4JFileStream));
+        }
+        
     }
     
     /**
      * Initializes the logger with the <code>xmlLog4JStream</code> input stream.
-     * If the <code>xmlLog4JStream</code> is null or empty, the default android_log4j.xml file used
-     * to configure the logger.
+     * If the <code>xmlLog4JStream</code> is null or empty then the <code>android_log4j.properties</code>
+     * is used to configure the logger.
      *
      * @param context
-     * @param xmlLog4JStream
+     * @param log4JFileStream
      */
-    public static void log4jConfigure(final Context context, InputStream xmlLog4JStream) {
-        setLog4JLogsEnabled(true);
-        if(isNull(xmlLog4JStream)) {
-            xmlLog4JStream = readAssets(context, ANDROID_LOG4J_XML);
-        }
-        /* loads the provided log4j file. */
-        PropertyConfigurator.configure(xmlLog4JStream);
+    public static void log4JConfigure(final String logFolderPath, final Context context, InputStream log4JFileStream) {
+        log4JConfigure(logFolderPath, context, log4JFileStream, false);
     }
     
+    
     /**************************************************************************
-     * Log4J Logger methods.
+     * Log4J Logger Helper methods.
      **************************************************************************/
     
     /**
@@ -633,24 +750,12 @@ public final class LogHelper {
      * @param logClass
      * @return
      */
-    public static Logger getLogger(Class<?> logClass) {
-        Logger logger = null;
+    public static final Logger getLogger(final Class<?> logClass) {
         if(isNull(logClass)) {
             throw new IllegalArgumentException("logClass is NULL! it must provide!");
+        } else {
+            return Logger.getLogger(logClass);
         }
-        
-        logger = mCachedLoggers.get(logClass.getName());
-        if(isNull(logger)) {
-            synchronized(mCachedLoggers) {
-                if(isNull(logger)) {
-                    logger = Logger.getLogger(logClass.getName());
-                    /* cache this class logger to reuse */
-                    mCachedLoggers.put(logClass.getName(), logger);
-                }
-            }
-        }
-        
-        return logger;
     }
     
     /**
@@ -661,24 +766,35 @@ public final class LogHelper {
      * @param logClassName
      * @return
      */
-    public static Logger getLogger(final String logClassName) {
-        Logger logger = null;
+    public static final Logger getLogger(final String logClassName) {
         if(isNull(logClassName)) {
             throw new IllegalArgumentException("logClass is NULL! it must provide!");
+        } else {
+            return Logger.getLogger(logClassName);
         }
-        
-        logger = mCachedLoggers.get(logClassName);
-        if(isNull(logger)) {
-            synchronized(mCachedLoggers) {
-                if(isNull(logger)) {
-                    logger = Logger.getLogger(logClassName);
-                    /* cache this class logger to reuse */
-                    mCachedLoggers.put(logClassName, logger);
-                }
-            }
-        }
-        
-        return logger;
+    }
+    
+    /**
+     * The <code>logType</code> is to set for the <code>Logger</code> object for the specified
+     * <code>logClass</code> class.
+     *
+     * @param logClass
+     * @param logType
+     * @return
+     */
+    public static final void setLogTypeFor(final Class<?> logClass, final LogType logType) {
+        getLogger(logClass).setLevel(LogType.toLevel(logType));
+    }
+    
+    /**
+     * The <code>logType</code> is to set for the <code>Logger</code> object for the specified
+     * <code>logClassName</code> class.
+     *
+     * @param logClassName
+     * @param logType
+     */
+    public final void setLogTypeFor(final String logClassName, final LogType logType) {
+        getLogger(logClassName).setLevel(LogType.toLevel(logType));
     }
     
     /**

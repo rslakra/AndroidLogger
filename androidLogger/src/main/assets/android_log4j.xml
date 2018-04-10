@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
     <!-- File Appender -->
-    <appender name="appender" class="org.apache.log4j.DailyRollingFileAppender">
+    <appender name="RFA" class="org.apache.log4j.DailyRollingFileAppender">
         <param name="File" value="android.log" />
         <param name="Append" value="true" />
-        <param name="maxFileSize" value="5MB" />
+        <!-- The size is in MB. -->
+        <param name="maxFileSize" value="2" />
         <param name="maxBackupIndex" value="2" />
         <param name="DatePattern" value="'.'yyyy-MM-dd" />
         <layout class="org.apache.log4j.PatternLayout">
@@ -24,7 +25,7 @@
     <!-- Root Appender -->
     <root>
         <priority value="DEBUG" />
-        <appender-ref ref="appender" />
+        <appender-ref ref="RFA" />
         <appender-ref ref="console" />
     </root>
 </log4j:configuration>

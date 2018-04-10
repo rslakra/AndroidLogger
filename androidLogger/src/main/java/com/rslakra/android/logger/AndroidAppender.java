@@ -28,13 +28,13 @@
  *****************************************************************************/
 package com.rslakra.android.logger;
 
+import android.util.Log;
+
 import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.Layout;
 import org.apache.log4j.Level;
 import org.apache.log4j.PatternLayout;
 import org.apache.log4j.spi.LoggingEvent;
-
-import android.util.Log;
 
 /**
  * An Android log4j appender.
@@ -47,27 +47,55 @@ import android.util.Log;
  */
 public final class AndroidAppender extends AppenderSkeleton {
     
-    /**
-     * mTagLayout
-     */
+    /** mTagLayout */
     private Layout mTagLayout;
     
     /**
+     * The <code>mTagLayout</code> to be set as well as <code>layout</code> of the log.
+     *
      * @param tagLayout
      * @param logPattern
      */
     public AndroidAppender(final Layout tagLayout, final Layout logPattern) {
-        this.mTagLayout = tagLayout;
+        this.setTagLayout(tagLayout);
         super.setLayout(logPattern);
     }
     
     /**
+     * The <code>mTagLayout</code> to be set as well as <code>layout</code> of the log.
+     *
      * @param logPattern
      */
     public AndroidAppender(final Layout logPattern) {
         this(new PatternLayout("%c".intern()), logPattern);
     }
     
+    /**
+     * Returns the tagLayout.
+     *
+     * @return
+     */
+    public final Layout getTagLayout() {
+        return mTagLayout;
+    }
+    
+    /**
+     * The tagLayout to be set.
+     *
+     * @param tagLayout
+     */
+    public final void setTagLayout(final Layout tagLayout) {
+        if(tagLayout == null) {
+            throw new NullPointerException("The tagLayout should not be NULL!");
+        }
+        if(this.mTagLayout != tagLayout) {
+            this.mTagLayout = tagLayout;
+        }
+    }
+    
+    /********************************************************************************************
+     * Override super class methods.
+     ********************************************************************************************/
     
     /**
      * Appends the logs to the configured logger.
@@ -75,7 +103,7 @@ public final class AndroidAppender extends AppenderSkeleton {
      * @param logEvent
      */
     @Override
-    protected void append(final LoggingEvent logEvent) {
+    protected final void append(final LoggingEvent logEvent) {
         switch(logEvent.getLevel().toInt()) {
             case Level.TRACE_INT:
                 if(logEvent.getThrowableInformation() != null) {
@@ -123,35 +151,17 @@ public final class AndroidAppender extends AppenderSkeleton {
     }
     
     /**
-     *
+     * Nothing to do here.
      */
     @Override
-    public void close() {
+    public final void close() {
     }
     
     /**
      * @return
      */
     @Override
-    public boolean requiresLayout() {
+    public final boolean requiresLayout() {
         return true;
-    }
-    
-    /**
-     * Returns the tagLayout.
-     *
-     * @return
-     */
-    public Layout getTagLayout() {
-        return mTagLayout;
-    }
-    
-    /**
-     * The tagLayout to be set.
-     *
-     * @param tagLayout
-     */
-    public void setTagLayout(final Layout tagLayout) {
-        this.mTagLayout = tagLayout;
     }
 }
