@@ -797,15 +797,6 @@ public final class LogHelper {
         getLogger(logClassName).setLevel(LogType.toLevel(logType));
     }
     
-    /**
-     * Returns true if the log-level is >= Level.INFO otherwise false.
-     *
-     * @return
-     */
-    public static boolean isLogEnabledForProduction() {
-        return isLogEnabledFor(LogType.INFO);
-    }
-    
     /**************************************************************************
      * Log Helper Methods.
      **************************************************************************/
