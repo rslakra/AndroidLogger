@@ -30,6 +30,7 @@ task clean(type: Delete) {
 }
 
 task copyAARFile(type: Copy) {
+    //copy .aar file to 'project' folder.
     from 'androidLogger/build/outputs/aar/androidLogger-release.aar'
-    into rootProject.file("/app/libs")
+    into rootProject.projectDir.getAbsolutePath()
 }

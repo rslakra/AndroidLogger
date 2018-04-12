@@ -42,9 +42,12 @@ import android.widget.Toast;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.Properties;
 
 /**
@@ -386,7 +389,7 @@ public final class LogHelper {
      * @param pathString
      * @return
      */
-    public static InputStream readAssets(final Context context, final String pathString) {
+    public final static InputStream readAssets(final Context context, final String pathString) {
         InputStream assetStream = null;
         if(isNotNull(context) && !isNullOrEmpty(pathString)) {
             try {
@@ -409,13 +412,36 @@ public final class LogHelper {
      * @param fileName
      * @return
      */
-    public static InputStream readRAWResources(final Context context, final String fileName) {
+    public final static InputStream readRAWResources(final Context context, final String fileName) {
         InputStream rawResourcesStream = null;
         if(isNotNull(context) && !isNullOrEmpty(fileName)) {
             rawResourcesStream = context.getResources().openRawResource(context.getResources().getIdentifier(fileName, "raw", context.getPackageName()));
         }
         
         return rawResourcesStream;
+    }
+    
+    /**
+     * Closes the specified <code>mCloseables</code> objects.
+     *
+     * @param mCloseables
+     */
+    public static final void closeSilently(Object... mCloseables) {
+        if(isNotNull(mCloseables)) {
+            for(Object mCloseable : mCloseables) {
+                try {
+                    if(mCloseable instanceof Closeable) {
+                        ((Closeable) mCloseable).close();
+                    } else if(mCloseable instanceof Socket) {
+                        ((Socket) mCloseable).close();
+                    } else if(mCloseable instanceof ServerSocket) {
+                        ((ServerSocket) mCloseable).close();
+                    }
+                } catch(IOException ex) {
+                    LogHelper.e(LOG_TAG, "Error while closing object:" + mCloseable, ex);
+                }
+            }
+        }
     }
     
     /**
@@ -463,21 +489,38 @@ public final class LogHelper {
     }
     
     /**
+     * Loads the <code>Properties</code> object for the specified <code>inputStream</code>. If the
+     * <code>closeStream</code> is set to be true, the stream is closed too.
+     *
+     * @param inputStream
+     * @param closeStream
+     * @return
+     */
+    public static final Properties loadProperties(final InputStream inputStream, final boolean closeStream) {
+        final Properties mProperties = new Properties();
+        try {
+            mProperties.load(inputStream);
+        } catch(Exception ex) {
+            Log.e(LOG_TAG, "Error loading properties file from the stream!", ex);
+        } finally {
+            if(closeStream) {
+                closeSilently(inputStream);
+            }
+        }
+        
+        return mProperties;
+    }
+    
+    /**
      * Loads the <code>Properties</code> object for the specified <code>inputStream</code>.
      *
      * @param inputStream
      * @return
      */
     public static final Properties loadProperties(final InputStream inputStream) {
-        final Properties mProperties = new Properties();
-        try {
-            mProperties.load(inputStream);
-        } catch(Exception ex) {
-            Log.e(LOG_TAG, "Error loading properties file from the stream!", ex);
-        }
-        
-        return mProperties;
+        return loadProperties(inputStream, false);
     }
+    
     
     /**************************************************************************
      * Log Helper and Logger Configuration Methods.
@@ -727,17 +770,19 @@ public final class LogHelper {
     }
     
     /**
-     * Initializes the logger with the <code>xmlLog4JStream</code> input stream.
-     * If the <code>xmlLog4JStream</code> is null or empty then the <code>android_log4j.properties</code>
-     * is used to configure the logger.
+     * Initializes the logger with the <code>log4JPropertyFile</code> property file.
+     * If the <code>log4JPropertyFile</code> is null or empty then the
+     * <code>android_log4j.properties</code> is used to configure the logger.
      *
+     * @param logFolderPath
      * @param context
-     * @param log4JFileStream
+     * @param log4JPropertyFile
      */
-    public static void log4JConfigure(final String logFolderPath, final Context context, InputStream log4JFileStream) {
+    public static void log4JConfigure(final String logFolderPath, final Context context, final String log4JPropertyFile) {
+        final InputStream log4JFileStream = readAssets(context, (isNullOrEmpty(log4JPropertyFile) ? ANDROID_LOG4J_PROPERTIES : log4JPropertyFile));
         log4JConfigure(logFolderPath, context, log4JFileStream, false);
+        closeSilently(log4JFileStream);
     }
-    
     
     /**************************************************************************
      * Log4J Logger Helper methods.
