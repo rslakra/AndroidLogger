@@ -58,32 +58,64 @@ import java.io.IOException;
 public final class Log4JConfigurator {
     
     /** LOG_TAG */
-    private static final String LOG_TAG = "Log4JConfigurator".intern();
-    
-    /** mRootLogger */
-    private Logger mRootLogger;
-    private Level mLogLevel = Level.INFO;
-    private String mLogPattern;
-    private String mLogsFolder;
-    private String mFileName;
-    private String mLogFileName;
-    private int mMaxBackupFiles;
-    private long mMaxFileSize;
-    private boolean mImmediateFlush = true;
-    private boolean mUseFileAppender = true;
-    private boolean mUseAndroidAppender = true;
-    private boolean mResetConfiguration = true;
-    private boolean mInternalLogging = false;
+    private static final String LOG_TAG = "Log4JConfigurator";
     
     /** mLoggerRepository */
     private final LoggerRepository mLoggerRepository;
     
+    /** mRootLogger */
+    private Logger mRootLogger;
+    
+    /** mLogLevel */
+    private Level mLogLevel = Level.INFO;
+    
+    /** mLogPattern */
+    private String mLogPattern;
+    
+    /** mLogsFolder */
+    private String mLogsFolder;
+    
+    /** mFileName */
+    private String mFileName;
+    
+    /** mLogFileName */
+    private String mLogFileName;
+    
+    /** mMaxBackupFiles */
+    private int mMaxBackupFiles;
+    
+    /** mMaxFileSize */
+    private long mMaxFileSize;
+    
+    /** mImmediateFlush */
+    private boolean mImmediateFlush = true;
+    
+    /** mUseFileAppender */
+    private boolean mUseFileAppender = true;
+    
+    /** mUseAndroidAppender */
+    private boolean mUseAndroidAppender = true;
+    
+    /** mResetConfiguration */
+    private boolean mResetConfiguration = true;
+    
+    /** mInternalLogging */
+    private boolean mInternalLogging = false;
     
     /**
      * Default Constructor.
      */
     public Log4JConfigurator() {
         mLoggerRepository = LogManager.getLoggerRepository();
+    }
+    
+    /**
+     * Returns the <code>LoggerRepository</code> value.
+     *
+     * @return
+     */
+    public final LoggerRepository getLoggerRepository() {
+        return mLoggerRepository;
     }
     
     /**

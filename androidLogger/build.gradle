@@ -6,7 +6,16 @@ android {
 
     defaultConfig {
         minSdkVersion 19
+
+        // Disable the annotation processor error check
+        javaCompileOptions {
+            annotationProcessorOptions {
+                includeCompileClasspath false
+            }
+        }
+
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
     }
 
     buildTypes {
@@ -21,21 +30,48 @@ android {
         }
     }
 
+    productFlavors {
+
+    }
+
     lintOptions {
+        /*
+         * To proceed, either fix the issues identified by lint, or modify your build script as
+         * follows:
+         * checkReleaseBuilds false
+         */
+        checkReleaseBuilds false
+
+        /*
+         * Or, if you prefer, you can continue to check for errors in release builds,
+         * but continue the build even when errors are found:
+         * abortOnError false
+         */
         abortOnError false
+
+        /*
+         * Disable/Suppress 'MissingTranslation' warning in case translation is missing for an
+         * another languages.
+         */
+//        disable 'MissingTranslation'
+
+        /*
+         * Disable Generating XML Report.
+         */
+        xmlReport false
     }
 
     // Tells Gradle to build all variants of the library. Note that this
     // may increase build times because Gradle must build multiple AARs,
     // instead of only one.
-    publishNonDefault true
+//    publishNonDefault true
 
 
     testOptions {
 
         unitTests.all {
             // All the usual Gradle options.
-            jvmArgs '-XX:MaxPermSize=256m'
+//            jvmArgs '-XX:MaxPermSize=256m'
         }
 
         unitTests.returnDefaultValues = true

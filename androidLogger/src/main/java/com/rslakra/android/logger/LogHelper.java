@@ -35,6 +35,9 @@ import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.util.Log;
 import android.webkit.WebResourceRequest;
 import android.widget.Toast;
@@ -72,19 +75,19 @@ import java.util.Properties;
 public final class LogHelper {
     
     /* LOG_TAG */
-    public static final String LOG_TAG = "LogHelper".intern();
+    public static final String LOG_TAG = "LogHelper";
     
     /* EMPTY_STRING  */
-    public static final String EMPTY_STRING = "".intern();
+    public static final String EMPTY_STRING = "";
     
     /* SPACE  */
-    public static final String SPACE = " ".intern();
+    public static final String SPACE = " ";
     
     /* ANDROID_LOG4J_PROPERTIES  */
-    public static final String ANDROID_LOG4J_PROPERTIES = "android_log4j.properties".intern();
+    public static final String ANDROID_LOG4J_PROPERTIES = "android_log4j.properties";
     
     /* ANDROID_LOG4J_XML  */
-    private static final String ANDROID_LOG4J_XML = "android_log4j.xml".intern();
+    private static final String ANDROID_LOG4J_XML = "android_log4j.xml";
     
     /* LOG4J_ROOT_LOGGER */
     private final static String LOG4J_ROOT_LOGGER = "log4j.rootLogger";

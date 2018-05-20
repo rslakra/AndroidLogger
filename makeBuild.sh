@@ -16,6 +16,7 @@
 #
 # ./gradlew assembleRelease
 # ./gradlew assembleRelease --debug --stacktrace
+#./gradlew assembleRelease copyAARFile apkCopy
 #
 
 clear

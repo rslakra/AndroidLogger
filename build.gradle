@@ -29,8 +29,21 @@ task clean(type: Delete) {
     delete rootProject.buildDir
 }
 
+
+/*
+ * Task to copy library (.aar) into 'project' root folder.
+ */
 task copyAARFile(type: Copy) {
-    //copy .aar file to 'project' folder.
     from 'androidLogger/build/outputs/aar/androidLogger-release.aar'
+    into rootProject.projectDir.getAbsolutePath()
+}
+
+/*
+ * Task to copy build (.apk) into respective folder.
+ */
+task apkCopy(type: Copy) {
+    //copy .apk file to '/Users/rohlak/Releases/Android' folder.
+    from 'app/build/outputs/apk/release'
+    include "*.apk"
     into rootProject.projectDir.getAbsolutePath()
 }
