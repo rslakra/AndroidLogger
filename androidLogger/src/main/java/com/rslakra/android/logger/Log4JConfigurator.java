@@ -30,6 +30,7 @@ package com.rslakra.android.logger;
 
 import android.util.Log;
 
+import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -70,7 +71,7 @@ public final class Log4JConfigurator {
     private Level mLogLevel = Level.INFO;
     
     /** mLogPattern */
-    private String mLogPattern;
+    private PatternLayout mLogPattern;
     
     /** mLogsFolder */
     private String mLogsFolder;
@@ -78,8 +79,8 @@ public final class Log4JConfigurator {
     /** mFileName */
     private String mFileName;
     
-    /** mLogFileName */
-    private String mLogFileName;
+    /** mLogFilePath */
+    private String mLogFilePath;
     
     /** mMaxBackupFiles */
     private int mMaxBackupFiles;
@@ -88,29 +89,44 @@ public final class Log4JConfigurator {
     private long mMaxFileSize;
     
     /** mImmediateFlush */
-    private boolean mImmediateFlush = true;
-    
-    /** mUseFileAppender */
-    private boolean mUseFileAppender = true;
-    
-    /** mUseAndroidAppender */
-    private boolean mUseAndroidAppender = true;
-    
-    /** mResetConfiguration */
-    private boolean mResetConfiguration = true;
+    private boolean mImmediateFlush;
     
     /** mInternalLogging */
-    private boolean mInternalLogging = false;
+    private boolean mInternalLogging;
+    
+    /** mResetConfiguration */
+    private boolean mResetConfiguration;
+    
+    /** mUseConsoleAppender */
+    private boolean mUseConsoleAppender;
+    
+    /** mUseFileAppender */
+    private boolean mUseFileAppender;
+    
+    /** mUseRollingFileAppender */
+    private boolean mUseRollingFileAppender;
+    
+    /** mConsoleAppender */
+    private AndroidAppender mConsoleAppender;
+    
+    /** mFileAppender */
+    private FileAppender mFileAppender;
     
     /**
      * Default Constructor.
      */
     public Log4JConfigurator() {
         mLoggerRepository = LogManager.getLoggerRepository();
+        setImmediateFlush(true);
+        setInternalLogging(false);
+        setResetConfiguration(true);
+        setUseConsoleAppender(true);
+        setUseFileAppender(true);
+        setUseRollingFileAppender(true);
     }
     
     /**
-     * Returns the <code>LoggerRepository</code> value.
+     * Returns the <code>mLoggerRepository</code> value.
      *
      * @return
      */
@@ -127,7 +143,10 @@ public final class Log4JConfigurator {
         if(mRootLogger == null) {
             synchronized(Log4JConfigurator.class) {
                 if(mRootLogger == null) {
-                    mRootLogger = mLoggerRepository.getRootLogger();
+                    if(isResetConfiguration()) {
+                        getLoggerRepository().resetConfiguration();
+                    }
+                    mRootLogger = getLoggerRepository().getRootLogger();
                     mRootLogger.setLevel(getLogLevel());
                 }
             }
@@ -137,7 +156,7 @@ public final class Log4JConfigurator {
     }
     
     /**
-     * Return the log level of the root logger
+     * Returns the <code>mLogLevel</code> value of the root logger.
      *
      * @return Log level of the root logger
      */
@@ -146,7 +165,7 @@ public final class Log4JConfigurator {
     }
     
     /**
-     * Sets log level for the root logger
+     * The <code>mLogLevel</code> to be set for the root logger.
      *
      * @param logLevel Log level for the root logger
      */
@@ -161,16 +180,32 @@ public final class Log4JConfigurator {
     }
     
     /**
-     * Returns the log pattern.
+     * Returns the <code>mLogPattern</code> value.
      *
      * @return
      */
-    public final String getLogPattern() {
+    public final PatternLayout getLogPattern() {
         return mLogPattern;
     }
     
     /**
-     * The logPattern to be set.
+     * The <code>mLogPattern</code> to be set.
+     *
+     * @param logPattern
+     */
+    public final void setLogPattern(final PatternLayout logPattern) {
+        if(LogHelper.isNull(logPattern)) {
+            throw new IllegalArgumentException("logPattern is NULL!");
+        }
+        
+        //initialize log pattern layout.
+        if(this.mLogPattern != logPattern) {
+            this.mLogPattern = logPattern;
+        }
+    }
+    
+    /**
+     * The <code>mLogPattern</code> to be set.
      *
      * @param logPattern
      */
@@ -179,11 +214,12 @@ public final class Log4JConfigurator {
             throw new IllegalArgumentException("logPattern is either NULL or EMPTY!");
         }
         
-        this.mLogPattern = logPattern;
+        //initialize log pattern layout.
+        setLogPattern(new PatternLayout(logPattern));
     }
     
     /**
-     * Returns the path of the logsFolder.
+     * Returns the <code>mLogsFolder</code> value, which is the logs folder.
      *
      * @return
      */
@@ -192,20 +228,7 @@ public final class Log4JConfigurator {
     }
     
     /**
-     * Returns the log file name in which logs are appended.
-     *
-     * @return
-     */
-    private final String getLogFileName() {
-        if(LogHelper.isNullOrEmpty(mLogFileName)) {
-            mLogFileName = LogHelper.pathString(getLogsFolder(), getFileName());
-        }
-        
-        return mLogFileName;
-    }
-    
-    /**
-     * Sets the name of the log file
+     * The <code>mLogsFolder</code> to be set.
      *
      * @param logsFolder path of the logs folder.
      */
@@ -218,7 +241,7 @@ public final class Log4JConfigurator {
     }
     
     /**
-     * Returns the name of the log file
+     * Returns the <code>mFileName</code>, in which logs are stored.
      *
      * @return the name of the log file
      */
@@ -227,9 +250,9 @@ public final class Log4JConfigurator {
     }
     
     /**
-     * Sets the name of the log file
+     * The <code>mFileName</code> to be set, in which logs are stored.
      *
-     * @param fileName Name of the log file
+     * @param fileName name of the log file
      */
     public final void setFileName(final String fileName) {
         if(LogHelper.isNullOrEmpty(fileName)) {
@@ -237,6 +260,19 @@ public final class Log4JConfigurator {
         }
         
         this.mFileName = fileName;
+    }
+    
+    /**
+     * Returns the <code>mLogFilePath</code> value, in which, the logs are stored on the device.
+     *
+     * @return
+     */
+    public final String getLogFilePath() {
+        if(LogHelper.isNullOrEmpty(mLogFilePath)) {
+            mLogFilePath = LogHelper.pathString(getLogsFolder(), getFileName());
+        }
+        
+        return mLogFilePath;
     }
     
     /**
@@ -300,39 +336,21 @@ public final class Log4JConfigurator {
     }
     
     /**
-     * Returns true, if FileAppender is used for logging
+     * Returns the internalLogging.
      *
-     * @return True, if FileAppender is used for logging
+     * @return
      */
-    public final boolean isUseFileAppender() {
-        return mUseFileAppender;
+    public final boolean isInternalLogging() {
+        return mInternalLogging;
     }
     
     /**
-     * The useFileAppender to be set.
+     * The internalLogging to be set.
      *
-     * @param useFileAppender
+     * @param internalLogging
      */
-    public final void setUseFileAppender(final boolean useFileAppender) {
-        this.mUseFileAppender = useFileAppender;
-    }
-    
-    /**
-     * Returns true, if LogcatAppender should be used
-     *
-     * @return True, if LogcatAppender should be used
-     */
-    public final boolean isUseAndroidAppender() {
-        return mUseAndroidAppender;
-    }
-    
-    /**
-     * The useAndroidAppender to be set.
-     *
-     * @param useAndroidAppender If true, LogCatAppender will be used for logging
-     */
-    public final void setUseAndroidAppender(final boolean useAndroidAppender) {
-        this.mUseAndroidAppender = useAndroidAppender;
+    public final void setInternalLogging(final boolean internalLogging) {
+        this.mInternalLogging = internalLogging;
     }
     
     /**
@@ -355,21 +373,57 @@ public final class Log4JConfigurator {
     }
     
     /**
-     * Returns the internalLogging.
+     * Returns the <code>mUseConsoleAppender</code> value.
      *
      * @return
      */
-    public final boolean isInternalLogging() {
-        return mInternalLogging;
+    public final boolean isUseConsoleAppender() {
+        return mUseConsoleAppender;
     }
     
     /**
-     * The internalLogging to be set.
+     * The <code>mUseConsoleAppender</code> to be set.
      *
-     * @param internalLogging
+     * @param useConsoleAppender
      */
-    public final void setInternalLogging(final boolean internalLogging) {
-        this.mInternalLogging = internalLogging;
+    public final void setUseConsoleAppender(final boolean useConsoleAppender) {
+        this.mUseConsoleAppender = useConsoleAppender;
+    }
+    
+    /**
+     * Returns the <code>mUseFileAppender</code> value.
+     *
+     * @return
+     */
+    public final boolean isUseFileAppender() {
+        return mUseFileAppender;
+    }
+    
+    /**
+     * The <code>mUseFileAppender</code> to be set.
+     *
+     * @param useFileAppender
+     */
+    public final void setUseFileAppender(final boolean useFileAppender) {
+        this.mUseFileAppender = useFileAppender;
+    }
+    
+    /**
+     * Returns the <code>mUseRollingFileAppender</code> value.
+     *
+     * @return
+     */
+    public final boolean isUseRollingFileAppender() {
+        return mUseRollingFileAppender;
+    }
+    
+    /**
+     * The <code>mUseRollingFileAppender</code> to be set.
+     *
+     * @param useRollingFileAppender
+     */
+    public final void setUseRollingFileAppender(final boolean useRollingFileAppender) {
+        this.mUseRollingFileAppender = useRollingFileAppender;
     }
     
     /**
@@ -383,38 +437,48 @@ public final class Log4JConfigurator {
     }
     
     /**
-     * Configures the file appender.
+     * Configures the file appender based on the <code>mUseFileAppender</code> and the
+     * <code>mUseRollingFileAppender</code> properties settings.
      */
-    private final void addFileAppender() {
-        try {
-            final File logFile = new File(getLogFileName());
-            /** Check logs file exists or not. */
-            if(!logFile.exists()) {
-                /** Create logs folder, if it does not exist. */
-                if(!logFile.getParentFile().exists()) {
-                    if(!logFile.getParentFile().mkdirs()) {
-                        Log.w(LOG_TAG, "Unable to create folder:" + logFile.getParentFile().getAbsolutePath());
+    public final void addFileAppender() {
+        if(isUseFileAppender()) {
+            try {
+                final File logFile = new File(getLogFilePath());
+                /** Check logs file exists or not. */
+                if(!logFile.exists()) {
+                    /** Create logs folder, if it does not exist. */
+                    if(!logFile.getParentFile().exists()) {
+                        if(!logFile.getParentFile().mkdirs()) {
+                            Log.w(LOG_TAG, "Unable to create folder:" + logFile.getParentFile().getAbsolutePath());
+                        }
+                    }
+                    
+                    /** Create log file, if it does not exist. */
+                    if(!logFile.createNewFile()) {
+                        Log.w(LOG_TAG, "Unable to create logs file:" + logFile.getAbsolutePath());
                     }
                 }
                 
-                /** Create log file, if it does not exist. */
-                if(!logFile.createNewFile()) {
-                    Log.w(LOG_TAG, "Unable to create logs file:" + logFile.getAbsolutePath());
+                if(LogHelper.isNull(mFileAppender)) {
+                    if(isUseRollingFileAppender()) {
+                        mFileAppender = new RollingFileAppender(getLogPattern(), getLogFilePath());
+                        ((RollingFileAppender) mFileAppender).setMaxBackupIndex(getMaxBackupFiles());
+                        ((RollingFileAppender) mFileAppender).setMaximumFileSize(getMaxFileSize());
+                        ((RollingFileAppender) mFileAppender).setImmediateFlush(isImmediateFlush());
+                    } else {
+                        mFileAppender = new FileAppender(getLogPattern(), getLogFilePath());
+                    }
                 }
+                
+                /** set file appender to root logger. */
+                getRootLogger().addAppender(mFileAppender);
+                Log.i(LOG_TAG, "Logs configured at:" + getLogFilePath());
+            } catch(final IOException ex) {
+                Log.e(LOG_TAG, ex.getLocalizedMessage(), ex);
+                throw new RuntimeException("Error while configuring logging file appender!", ex);
             }
-            
-            final RollingFileAppender fileAppender = new RollingFileAppender(new PatternLayout(getLogPattern()), getLogFileName());
-            Log.i(LOG_TAG, "Logs configured at:" + getLogFileName());
-            
-            fileAppender.setMaxBackupIndex(getMaxBackupFiles());
-            fileAppender.setMaximumFileSize(getMaxFileSize());
-            fileAppender.setImmediateFlush(isImmediateFlush());
-            
-            /** set file appender to root logger. */
-            getRootLogger().addAppender(fileAppender);
-        } catch(final IOException ex) {
-            Log.e(LOG_TAG, ex.getLocalizedMessage(), ex);
-            throw new RuntimeException("Error while configuring logger!", ex);
+        } else {
+            Log.w(LOG_TAG, "No file appender is configured!");
         }
     }
     
@@ -422,21 +486,28 @@ public final class Log4JConfigurator {
      * Configures the logger for file appender and android.
      */
     protected final void configure() {
-        getRootLogger().setLevel(getLogLevel());
+        //reset configuration
         if(isResetConfiguration()) {
-            mLoggerRepository.resetConfiguration();
+            getLoggerRepository().resetConfiguration();
         }
         
-        LogLog.setInternalDebugging(isInternalLogging());
+        //set internal logging.
+        if(isInternalLogging()) {
+            LogLog.setInternalDebugging(isInternalLogging());
+        }
         
-        // add android logger
-        if(isUseAndroidAppender()) {
-            getRootLogger().addAppender(new AndroidAppender(new PatternLayout(getLogPattern())));
+        // add android console logger
+        if(isUseConsoleAppender()) {
+            if(LogHelper.isNull(mConsoleAppender)) {
+                mConsoleAppender = new AndroidAppender(getLogPattern());
+            }
+            getRootLogger().addAppender(mConsoleAppender);
         }
         
         //add file appender
-        if(isUseFileAppender()) {
-            addFileAppender();
-        }
+        addFileAppender();
+        
+        //set log level for the root logger.
+        getRootLogger().setLevel(getLogLevel());
     }
 }

@@ -35,9 +35,6 @@ import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Build;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
 import android.util.Log;
 import android.webkit.WebResourceRequest;
 import android.widget.Toast;
@@ -49,6 +46,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.RandomAccessFile;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Properties;
@@ -524,13 +522,40 @@ public final class LogHelper {
         return loadProperties(inputStream, false);
     }
     
+    /**
+     * Returns the <code>byte[]</code> of the specified <code>filePath</code> file path.
+     *
+     * @param filePath
+     * @return
+     */
+    public static final byte[] readBytesFully(final String filePath) {
+        byte[] fileBytes = null;
+        if(!isNullOrEmpty(filePath)) {
+            RandomAccessFile randomAccessFile = null;
+            try {
+                randomAccessFile = new RandomAccessFile(new File(filePath), "r");
+                // Get and check length
+                int length = (int) randomAccessFile.length();
+                // Read file and return data
+                fileBytes = new byte[length];
+                randomAccessFile.readFully(fileBytes);
+            } catch(IOException ex) {
+                Log.e(LOG_TAG, "Error reading file! filePath:" + filePath, ex);
+            } finally {
+                closeSilently(randomAccessFile);
+            }
+        }
+        
+        return fileBytes;
+    }
+    
     
     /**************************************************************************
      * Log Helper and Logger Configuration Methods.
      **************************************************************************/
     
     /**
-     * Returns the sLogType value.
+     * Returns the <code>sLogType</code> value.
      *
      * @return
      */
@@ -539,7 +564,7 @@ public final class LogHelper {
     }
     
     /**
-     * The sLogType to be set.
+     * The <code>sLogType</code> to be set.
      *
      * @param logType
      */
@@ -562,7 +587,7 @@ public final class LogHelper {
     }
     
     /**
-     * Returns the sLog4JLogsEnabled value.
+     * Returns the <code>sLog4JLogsEnabled</code> value.
      *
      * @return
      */
@@ -571,7 +596,7 @@ public final class LogHelper {
     }
     
     /**
-     * The sLog4JLogsEnabled to be set.
+     * The <code>sLog4JLogsEnabled</code> to be set.
      *
      * @param log4JLogsEnabled
      */
@@ -785,6 +810,15 @@ public final class LogHelper {
         final InputStream log4JFileStream = readAssets(context, (isNullOrEmpty(log4JPropertyFile) ? ANDROID_LOG4J_PROPERTIES : log4JPropertyFile));
         log4JConfigure(logFolderPath, context, log4JFileStream, false);
         closeSilently(log4JFileStream);
+    }
+    
+    /**
+     * Returns the log file path, if <code>sLog4JLogsEnabled</code> is true otherwise null.
+     *
+     * @return
+     */
+    public static String getLogFilePath() {
+        return (isLog4JLogsEnabled() ? sLog4JConfigurator.getLogFilePath() : null);
     }
     
     /**************************************************************************
@@ -1120,7 +1154,7 @@ public final class LogHelper {
      * @param logTag
      * @param mThrowable
      */
-    public static void wtf(String logTag, final Throwable mThrowable) {
+    public static void wtf(final String logTag, final Throwable mThrowable) {
         if(isLogEnabledFor(LogType.ERROR)) {
             Log.wtf(logTag, mThrowable);
         }

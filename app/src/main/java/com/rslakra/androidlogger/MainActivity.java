@@ -2,6 +2,7 @@ package com.rslakra.androidlogger;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.text.method.ScrollingMovementMethod;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
@@ -34,23 +35,32 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mLogTextView = (TextView) findViewById(R.id.logTextView);
+        //add this line to make the TextView scrollable.
+        mLogTextView.setMovementMethod(new ScrollingMovementMethod());
         
         // Configure Android Logger
         final String logFolderPath = LogHelper.pathString(LogHelper.getAppRootFolder(getApplicationContext()), "logs");
-//        LogHelper.log4JConfigure(logFolderPath, LogType.VERBOSE);
-        LogHelper.log4JConfigure(logFolderPath, getApplicationContext(), LogHelper.ANDROID_LOG4J_PROPERTIES);
+//        LogHelper.log4JConfigure(logFolderPath, LogType.INFO);
+        LogHelper.log4JConfigure(logFolderPath, "AndroidLogger.log", LogType.INFO);
+//        LogHelper.log4JConfigure(logFolderPath, getApplicationContext(), LogHelper.ANDROID_LOG4J_PROPERTIES);
         
         //test file logger
-        testFileLogger();
+        LogHelper.i(LOG_TAG, "Log File Path:" + LogHelper.getLogFilePath());
+        LogHelper.i(LOG_TAG, LogHelper.getLineSeparator());
+        LogHelper.i(LOG_TAG, "Testing Android Logger.");
+        LogHelper.i(LOG_TAG, LogHelper.getLineSeparator());
+        testLogger();
+        LogHelper.i(LOG_TAG, LogHelper.getLineSeparator());
+        LogHelper.i(LOG_TAG, "End of Logs!");
         
         //test text view logger
-        testTextViewLogger(logFolderPath);
+        showLoggedLogs();
     }
     
     /**
-     * Test Logger.
+     * Tests the dummy logging.
      */
-    private void testFileLogger() {
+    private void testLogger() {
         //log config details.
         LogHelper.v(LOG_TAG, LogType.VERBOSE.toString());
         LogHelper.d(LOG_TAG, LogType.DEBUG.toString());
@@ -60,54 +70,17 @@ public class MainActivity extends Activity {
     }
     
     /**
-     * Test TextView Logger.
-     *
-     * @param logFolderPath
+     * Shows the logged logs inside the text view.
      */
-    private void testTextViewLogger(final String logFolderPath) {
+    private void showLoggedLogs() {
         final StringBuilder logBuilder = new StringBuilder();
-        logBuilder.append("Logs Folder:" + logFolderPath);
-        logBuilder.append(LogHelper.getLineSeparator());
-        logBuilder.append("Logs Enabled");
-        logBuilder.append(LogHelper.getLineSeparator());
-        
-        //check VERBOSE
-        if(LogHelper.isLogEnabledFor(LogType.VERBOSE)) {
-            logBuilder.append(LogType.VERBOSE.toString());
-            logBuilder.append(LogHelper.getLineSeparator());
+        byte[] logFileBytes = LogHelper.readBytesFully(LogHelper.getLogFilePath());
+        if(logFileBytes != null) {
+            logBuilder.append(new String(logFileBytes));
+        } else {
+            logBuilder.append("No data loaded!");
         }
         
-        //check DEBUG
-        if(LogHelper.isLogEnabledFor(LogType.DEBUG)) {
-            logBuilder.append(LogType.DEBUG.toString());
-            logBuilder.append(LogHelper.getLineSeparator());
-        }
-        
-        //check INFO
-        if(LogHelper.isLogEnabledFor(LogType.INFO)) {
-            logBuilder.append(LogType.INFO.toString());
-            logBuilder.append(LogHelper.getLineSeparator());
-        }
-        
-        //check WARN
-        if(LogHelper.isLogEnabledFor(LogType.WARN)) {
-            logBuilder.append(LogType.WARN.toString());
-            logBuilder.append(LogHelper.getLineSeparator());
-        }
-        
-        //check ERROR
-        if(LogHelper.isLogEnabledFor(LogType.ERROR)) {
-            logBuilder.append(LogType.ERROR.toString());
-            logBuilder.append(LogHelper.getLineSeparator());
-        }
-        
-        //check SUPPRESS
-        if(LogHelper.isLogEnabledFor(LogType.SUPPRESS)) {
-            logBuilder.append(LogType.SUPPRESS.toString());
-            logBuilder.append(LogHelper.getLineSeparator());
-        }
-        
-        logBuilder.append("End Logs.");
         mLogTextView.append(logBuilder.toString());
     }
     
